@@ -157,7 +157,7 @@ export default function ExpenseTracker() {
           </div>
           <div className="space-y-1">
             <span className="font-sans text-xxs uppercase tracking-wider text-brand-text-muted">Spent This Month</span>
-            <p className="font-serif text-2xl font-bold text-brand-text-dark">${totalSpent.toFixed(2)}</p>
+            <p className="font-serif text-2xl font-bold text-brand-text-dark">₹{totalSpent.toFixed(2)}</p>
           </div>
         </div>
 
@@ -168,7 +168,7 @@ export default function ExpenseTracker() {
           </div>
           <div className="space-y-1">
             <span className="font-sans text-xxs uppercase tracking-wider text-brand-text-muted">Total Monthly Allowance</span>
-            <p className="font-serif text-2xl font-bold text-brand-text-dark">${profile.monthlyBudget.toFixed(2)}</p>
+            <p className="font-serif text-2xl font-bold text-brand-text-dark">₹{profile.monthlyBudget.toFixed(2)}</p>
           </div>
         </div>
 
@@ -180,7 +180,7 @@ export default function ExpenseTracker() {
           <div className="space-y-1">
             <span className="font-sans text-xxs uppercase tracking-wider text-brand-text-muted">Remaining Balance</span>
             <p className={`font-serif text-2xl font-bold ${budgetRemaining < 0 ? 'text-brand-terracotta' : 'text-brand-olive'}`}>
-              ${budgetRemaining.toFixed(2)}
+              ₹{budgetRemaining.toFixed(2)}
             </p>
           </div>
         </div>
@@ -221,7 +221,7 @@ export default function ExpenseTracker() {
                   {/* Center Text */}
                   <div className="absolute inset-0 flex flex-col justify-center items-center pointer-events-none">
                     <span className="text-xxs text-brand-text-muted uppercase tracking-wider">Total</span>
-                    <span className="font-serif text-lg font-bold">${totalActiveSpend.toFixed(0)}</span>
+                    <span className="font-serif text-lg font-bold">₹{totalActiveSpend.toFixed(0)}</span>
                   </div>
                 </>
               ) : (
@@ -243,7 +243,7 @@ export default function ExpenseTracker() {
                       <span className="font-sans text-brand-text-dark font-medium">{cat.name}</span>
                     </div>
                     <span className="font-sans text-brand-text-muted">
-                      ${cat.total.toFixed(2)} ({percent}%)
+                      ₹{cat.total.toFixed(2)} ({percent}%)
                     </span>
                   </div>
                 );
@@ -291,7 +291,7 @@ export default function ExpenseTracker() {
 
                       <div className="flex items-center gap-3 shrink-0">
                         <span className="font-serif font-bold text-base text-brand-text-dark">
-                          -${expense.amount.toFixed(2)}
+                          -₹{expense.amount.toFixed(2)}
                         </span>
                         <button 
                           onClick={() => deleteExpense(expense.id)}
@@ -360,7 +360,7 @@ export default function ExpenseTracker() {
               </div>
 
               <div className="space-y-1">
-                <label className="block text-brand-text-muted font-semibold">Monthly Allowance Limit ($)</label>
+                <label className="block text-brand-text-muted font-semibold">Monthly Allowance Limit (₹)</label>
                 <input 
                   type="number"
                   required
@@ -415,8 +415,8 @@ export default function ExpenseTracker() {
 
                       <div className="space-y-1">
                         <div className="flex justify-between font-sans text-xxs text-brand-text-muted">
-                          <span>Spent: ${total.toFixed(2)}</span>
-                          <span>Limit: ${cat.limit}</span>
+                          <span>Spent: ₹{total.toFixed(2)}</span>
+                          <span>Limit: ₹{cat.limit}</span>
                         </div>
                         <div className="w-full bg-brand-bg-warm h-1.5 rounded-full overflow-hidden">
                           <div 
@@ -482,7 +482,7 @@ export default function ExpenseTracker() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="block text-brand-text-muted font-semibold">Cost ($)</label>
+                  <label className="block text-brand-text-muted font-semibold">Cost (₹)</label>
                   <input 
                     type="number"
                     step="0.01"

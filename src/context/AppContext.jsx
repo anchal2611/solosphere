@@ -204,7 +204,7 @@ export const AppProvider = ({ children }) => {
     goals: [
       'Read 2 books this month',
       'Maintain an 8-day wellness habit streak',
-      'Keep weekly cafe spend under $40'
+      'Keep weekly cafe spend under ₹2000'
     ],
     notes: 'Remember: Living alone is a gift of time and space. Take it slow, decorate with things that tell a story, and cook meals that feel like a warm hug.',
     habits: [
@@ -305,7 +305,7 @@ export const AppProvider = ({ children }) => {
     // Push dynamic notification
     addNotification({
       type: 'expense',
-      text: `Added expense: $${expense.amount.toFixed(2)} for ${expense.description}`,
+      text: `Added expense: ₹${expense.amount.toFixed(2)} for ${expense.description}`,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       group: 'Today'
     });

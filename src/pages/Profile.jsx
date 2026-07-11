@@ -240,9 +240,9 @@ export default function Profile() {
                 <span className="text-brand-text-muted">Budget Outlay</span>
                 <div className="text-right">
                   <span className="font-serif font-bold text-brand-text-dark text-sm">
-                    ${totalSpent.toFixed(2)}
+                    ₹{totalSpent.toFixed(2)}
                   </span>
-                  <span className="text-xxs text-brand-text-muted block mt-0.5">out of ${profile.monthlyBudget}</span>
+                  <span className="text-xxs text-brand-text-muted block mt-0.5">out of ₹{profile.monthlyBudget}</span>
                 </div>
               </div>
             </div>
