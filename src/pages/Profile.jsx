@@ -1,4 +1,5 @@
 import React, { useContext, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AppContext } from '../context/AppContext';
 import { 
   User, 
@@ -11,10 +12,15 @@ import {
   Coffee,
   Sun,
   Moon,
-  ArrowRight
+  ArrowRight,
+  House,
+  Leaf,
+  Wheat,
+  CupSoda
 } from 'lucide-react';
 
-export default function Profile({ setCurrentTab, setSelectedRecipeId }) {
+export default function Profile() {
+  const navigate = useNavigate();
   const { profile, setProfile, recipes, expenses, categories } = useContext(AppContext);
   
   // Local edit states
@@ -29,6 +35,11 @@ export default function Profile({ setCurrentTab, setSelectedRecipeId }) {
   const [quietHour, setQuietHour] = useState('21:00');
 
   const [saveStatus, setSaveStatus] = useState('Saved');
+  const avatarOptions = [
+    { id: 'sun', Icon: Sun }, { id: 'leaf', Icon: Leaf }, { id: 'bread', Icon: Wheat },
+    { id: 'tea', Icon: CupSoda }, { id: 'coffee', Icon: Coffee }, { id: 'home', Icon: House }
+  ];
+  const ActiveAvatar = avatarOptions.find(({ id }) => id === userAvatar)?.Icon || User;
 
   // 1. Math calculations
   const totalSpent = expenses.reduce((acc, curr) => acc + curr.amount, 0);
@@ -52,8 +63,7 @@ export default function Profile({ setCurrentTab, setSelectedRecipeId }) {
   };
 
   const handleRecipeClick = (id) => {
-    setSelectedRecipeId(id);
-    setCurrentTab('recipe-detail');
+    navigate(`/recipes/${id}`);
   };
 
   return (
@@ -74,22 +84,23 @@ export default function Profile({ setCurrentTab, setSelectedRecipeId }) {
         <div className="bg-white p-6 rounded-brand shadow-sm border border-brand-bg-beige flex flex-col justify-between hover:shadow-md transition-shadow duration-300">
           <form onSubmit={handleSaveProfile} className="space-y-5 font-sans text-xs">
             <div className="flex flex-col items-center py-4 border-b border-brand-bg-warm space-y-3">
-              <span className="text-6xl p-4 bg-brand-bg-warm rounded-full hover:scale-105 transition-transform cursor-pointer select-none">
-                {userAvatar}
+              <span className="p-4 bg-brand-bg-warm rounded-full hover:scale-105 transition-transform cursor-pointer select-none text-brand-terracotta">
+                <ActiveAvatar size={38} aria-label="Selected profile icon" />
               </span>
               
-              {/* Avatar Emoji picker */}
+              {/* Profile icon picker */}
               <div className="flex gap-1.5 justify-center py-1">
-                {['☀️', '🌿', '🍞', '🍵', '☕', '🏠'].map(emoji => (
+                {avatarOptions.map(({ id, Icon }) => (
                   <button
-                    key={emoji}
+                    key={id}
                     type="button"
-                    onClick={() => setUserAvatar(emoji)}
-                    className={`w-6 h-6 text-xs rounded transition-all ${
-                      userAvatar === emoji ? 'bg-brand-terracotta text-brand-bg-warm scale-110' : 'bg-brand-bg-warm hover:bg-brand-bg-beige'
+                    onClick={() => setUserAvatar(id)}
+                    aria-label={`Use ${id} profile icon`}
+                    className={`w-7 h-7 flex items-center justify-center rounded transition-all ${
+                      userAvatar === id ? 'bg-brand-terracotta text-brand-bg-warm scale-110' : 'bg-brand-bg-warm hover:bg-brand-bg-beige text-brand-text-muted'
                     }`}
                   >
-                    {emoji}
+                    <Icon size={13} />
                   </button>
                 ))}
               </div>
@@ -106,7 +117,7 @@ export default function Profile({ setCurrentTab, setSelectedRecipeId }) {
             </div>
 
             <div className="space-y-1">
-              <label className="block text-brand-text-muted font-semibold">Monthly Allowance Limit ($)</label>
+              <label className="block text-brand-text-muted font-semibold">Monthly Allowance Limit (₹)</label>
               <input 
                 type="number"
                 value={userBudget}
@@ -270,7 +281,7 @@ export default function Profile({ setCurrentTab, setSelectedRecipeId }) {
             <p className="font-sans text-xxs text-brand-text-muted">Dishes bookmarked for solo cook days.</p>
           </div>
           <button 
-            onClick={() => setCurrentTab('recipes')}
+            onClick={() => navigate('/recipes')}
             className="text-xxs font-sans text-brand-terracotta hover:underline font-semibold flex items-center gap-0.5 group/btn"
           >
             Find more recipes

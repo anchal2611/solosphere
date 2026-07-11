@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AppContext } from '../context/AppContext';
 import { 
   Search, 
@@ -6,20 +7,18 @@ import {
   Clock, 
   Flame, 
   Sparkles, 
-  Heart,
   Eye,
   X,
-  Compass,
-  FolderOpen,
   UtensilsCrossed,
   HelpCircle
 } from 'lucide-react';
 
-export default function Recipes({ setCurrentTab, setSelectedRecipeId, onSearchIngredients }) {
+export default function Recipes() {
   const { recipes, profile, toggleRecipeSaved } = useContext(AppContext);
+  const navigate = useNavigate();
 
   // Search & Navigation States
-  const [activeFolderTab, setActiveFolderTab] = useState('all'); // 'all' or 'saved'
+  const [showOnlySaved, setShowOnlySaved] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
@@ -27,7 +26,7 @@ export default function Recipes({ setCurrentTab, setSelectedRecipeId, onSearchIn
   const [promptText, setPromptText] = useState('');
   const [parsedIngredients, setParsedIngredients] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [promptResults, setPromptResults] = useState(null); // null = not searched, [] = empty, [...] = results
+  const [promptResults, setPromptResults] = useState(null); 
   const [hasError, setHasError] = useState(false);
 
   // Common stop words to filter out when parsing keywords
@@ -44,7 +43,6 @@ export default function Recipes({ setCurrentTab, setSelectedRecipeId, onSearchIn
       return;
     }
 
-    // Split by spaces, commas, semicolons, and remove punctuation
     const words = promptText
       .toLowerCase()
       .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, ' ')
@@ -54,24 +52,20 @@ export default function Recipes({ setCurrentTab, setSelectedRecipeId, onSearchIn
       .map(w => w.trim())
       .filter(w => w.length >= 3 && !stopWords.has(w));
 
-    // Deduplicate
     const uniqueKeywords = [...new Set(cleanKeywords)];
     setParsedIngredients(uniqueKeywords);
   }, [promptText]);
 
-  // Remove a parsed ingredient chip (removes it from prompt text)
+  // Remove a parsed ingredient chip
   const handleRemoveChip = (chipToRemove) => {
-    // Remove from parsed list
     const updatedChips = parsedIngredients.filter(c => c !== chipToRemove);
     setParsedIngredients(updatedChips);
-    
-    // Regulate prompt text slightly by removing that word
     const regex = new RegExp(`\\b${chipToRemove}\\b`, 'gi');
     setPromptText(prev => prev.replace(regex, '').replace(/\s+/g, ' ').trim());
   };
 
-  // Submit Prompt to search
-  const handlePromptSearch = async (e) => {
+  // Submit Prompt to search (Local simulation)
+  const handlePromptSearch = (e) => {
     e.preventDefault();
     if (!promptText.trim()) return;
 
@@ -79,30 +73,14 @@ export default function Recipes({ setCurrentTab, setSelectedRecipeId, onSearchIn
     setPromptResults(null);
     setHasError(false);
 
-    // Call external REST integration prop if defined
-    if (onSearchIngredients) {
-      try {
-        const results = await onSearchIngredients(promptText);
-        setPromptResults(results);
-      } catch (err) {
-        setHasError(true);
-      } finally {
-        setIsLoading(false);
-      }
-      return;
-    }
-
-    // Simulated local mock-REST call for preview functionality
     setTimeout(() => {
       setIsLoading(false);
       
-      // If prompt has 'error', trigger simulated REST error
       if (promptText.toLowerCase().includes('error')) {
         setHasError(true);
         return;
       }
 
-      // Check if any of the parsed keywords match ingredients in the recipes DB
       if (parsedIngredients.length === 0) {
         setPromptResults([]);
         return;
@@ -116,22 +94,20 @@ export default function Recipes({ setCurrentTab, setSelectedRecipeId, onSearchIn
       });
 
       setPromptResults(matches);
-    }, 1500);
+      setShowOnlySaved(false); // Clear saved filter when showing prompt results to prevent state conflicts
+    }, 1200);
   };
 
-  // Regular catalog catalog filter
+  // Category tags
   const categoriesList = ['All', 'Breakfast', 'Lunch', 'Cozy Dinner', 'Dessert'];
 
-  // Base list to show in grid
+  // Base list to show in grid (filters by saved booklet vs prompt index)
   const getBaseRecipes = () => {
-    // If we have searched by ingredients prompt, prioritize those results
+    if (showOnlySaved) {
+      return recipes.filter(r => profile.savedRecipes.includes(r.id));
+    }
     if (promptResults !== null) {
       return promptResults;
-    }
-    
-    // Otherwise, filter saved vs all
-    if (activeFolderTab === 'saved') {
-      return recipes.filter(r => profile.savedRecipes.includes(r.id));
     }
     return recipes;
   };
@@ -145,8 +121,7 @@ export default function Recipes({ setCurrentTab, setSelectedRecipeId, onSearchIn
   });
 
   const handleCardClick = (id) => {
-    setSelectedRecipeId(id);
-    setCurrentTab('recipe-detail');
+    navigate(`/recipes/${id}`);
   };
 
   const handleClearPromptSearch = () => {
@@ -156,33 +131,68 @@ export default function Recipes({ setCurrentTab, setSelectedRecipeId, onSearchIn
   };
 
   return (
-    <div className="space-y-8 animate-slide-up">
+    <div className="space-y-8 animate-slide-up w-full max-w-7xl mx-auto">
       
-      {/* Editorial Header */}
-      <header className="border-b border-brand-text-muted/10 pb-6">
-        <h1 className="text-4xl font-bold tracking-tight text-brand-text-dark font-serif">Solo Kitchen</h1>
-        <p className="font-sans text-brand-text-muted text-sm mt-1">
-          Nourish yourself with intentional cooking. Sized for single portions.
-        </p>
-      </header>
-
-      {/* 1. PRIMARY INGREDIENT PROMPT CARD (HERO ELEMENT) */}
-      <section className="bg-white p-6 md:p-8 rounded-brand shadow-sm border border-brand-bg-beige space-y-5 text-left relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
-          <UtensilsCrossed size={120} className="text-brand-terracotta" />
+      {/* Editorial Header Section */}
+      <header className="border-b border-brand-text-muted/10 pb-6 space-y-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="space-y-1 text-left">
+            <h1 className="text-4xl font-bold tracking-tight text-brand-text-dark font-serif">Solo Kitchen</h1>
+            <p className="font-sans text-brand-text-muted text-sm mt-0.5">
+              Nourish yourself with intentional cooking. Sized for single portions.
+            </p>
+          </div>
+          
+          {/* Outlined Saved Recipes Toggle Button */}
+          <button
+            onClick={() => {
+              setShowOnlySaved(prev => !prev);
+              setPromptResults(null); // Reset ingredient search to clear confusion when filtering saved
+            }}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-brand border text-xs font-sans font-semibold transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shrink-0 ${
+              showOnlySaved
+                ? 'bg-brand-terracotta text-brand-bg-warm border-brand-terracotta shadow-xs font-bold'
+                : 'bg-white text-brand-text-muted border-brand-bg-beige hover:text-brand-text-dark hover:border-brand-text-muted/30'
+            }`}
+          >
+            <Bookmark size={14} className={showOnlySaved ? 'fill-brand-bg-warm' : ''} />
+            <span>Saved Recipes ({profile.savedRecipes.length})</span>
+          </button>
         </div>
 
-        <div className="space-y-1.5 max-w-xl">
-          <h3 className="font-serif text-lg md:text-xl font-bold text-brand-text-dark flex items-center gap-2">
-            <Sparkles size={18} className="text-brand-terracotta" />
-            What's in your pantry?
-          </h3>
+        {/* Compact & Slim Catalog Search Bar */}
+        <div className="relative max-w-md w-full font-sans text-xs">
+          <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-brand-text-muted">
+            <Search size={14} />
+          </span>
+          <input
+            type="text"
+            placeholder="Search recipe catalog by keyword or ingredient..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 rounded-brand border border-brand-bg-beige bg-white focus:outline-none focus:border-brand-terracotta/40 focus:ring-4 focus:ring-brand-terracotta/5 transition-all duration-300 shadow-xs"
+          />
+        </div>
+      </header>
+
+      {/* 1. VISUALLY DOMINANT INGREDIENT PROMPT CARD (WARM GRADIENT TINT HERO) */}
+      <section className="bg-gradient-to-br from-[#FDFBF8] via-[#FAF6EE] to-[#F4EEE6] p-8 md:p-10 rounded-brand shadow-sm border border-brand-gold/30 space-y-6 text-left relative overflow-hidden w-full">
+        <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
+          <UtensilsCrossed size={140} className="text-brand-terracotta" />
+        </div>
+
+        <div className="space-y-2 max-w-2xl">
+          <span className="text-[10px] text-brand-terracotta font-sans uppercase tracking-widest font-bold block">Pantry Matcher</span>
+          <h2 className="font-serif text-2xl md:text-3.5xl font-bold text-brand-text-dark flex items-center gap-2">
+            <Sparkles size={24} className="text-brand-terracotta animate-pulse" />
+            What's in your kitchen today?
+          </h2>
           <p className="font-sans text-xs text-brand-text-muted leading-relaxed">
-            Describe what you have on hand in normal language. We'll parse your ingredients and search matching dishes.
+            Write down what leftovers or basic ingredients you have lying around. We will parse the text and recommend portion-sized recipes.
           </p>
         </div>
 
-        <form onSubmit={handlePromptSearch} className="space-y-4 max-w-2xl font-sans text-xs">
+        <form onSubmit={handlePromptSearch} className="space-y-4 w-full font-sans text-xs">
           <div className="relative">
             <textarea
               rows="3"
@@ -190,19 +200,19 @@ export default function Recipes({ setCurrentTab, setSelectedRecipeId, onSearchIn
               placeholder="e.g. I have some eggs, baby spinach, and leftover mushrooms in my fridge"
               value={promptText}
               onChange={(e) => setPromptText(e.target.value)}
-              className="w-full px-4 py-3 rounded-brand border border-brand-bg-beige bg-brand-bg-warm/30 focus:bg-white focus:outline-none focus:ring-1 focus:ring-brand-terracotta leading-relaxed text-brand-text-dark placeholder-brand-text-muted/50 disabled:opacity-50"
+              className="w-full px-4 py-3.5 rounded-brand border border-brand-bg-beige bg-white focus:outline-none focus:ring-1 focus:ring-brand-terracotta leading-relaxed text-brand-text-dark placeholder-brand-text-muted/40 disabled:opacity-50 shadow-xs"
             />
           </div>
 
           {/* Parsed ingredient chips */}
           {parsedIngredients.length > 0 && (
             <div className="space-y-1.5">
-              <span className="text-[10px] text-brand-text-muted font-semibold block">Detected Ingredients:</span>
+              <span className="text-[10px] text-brand-text-muted font-bold block">Parsed keywords:</span>
               <div className="flex flex-wrap gap-2">
                 {parsedIngredients.map((ingredient) => (
                   <span 
                     key={ingredient} 
-                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-olive/10 text-brand-olive font-medium rounded-full text-[10px] border border-brand-olive/20"
+                    className="inline-flex items-center gap-1.5 px-3 py-1 bg-brand-olive/10 text-brand-olive font-semibold rounded-full text-[10px] border border-brand-olive/20 shadow-xs"
                   >
                     {ingredient}
                     <button
@@ -218,11 +228,11 @@ export default function Recipes({ setCurrentTab, setSelectedRecipeId, onSearchIn
             </div>
           )}
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 pt-2">
             <button
               type="submit"
               disabled={isLoading || !promptText.trim()}
-              className="bg-brand-terracotta text-brand-bg-warm px-6 py-3 rounded-brand font-semibold hover:bg-brand-cinnamon shadow-sm transition-all duration-300 disabled:opacity-50 flex items-center gap-1.5"
+              className="bg-brand-terracotta text-brand-bg-warm px-6 py-3.5 rounded-brand font-semibold hover:bg-brand-cinnamon shadow-md transition-all duration-300 hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 flex items-center gap-1.5"
             >
               <Search size={14} />
               Find Recipes
@@ -232,7 +242,7 @@ export default function Recipes({ setCurrentTab, setSelectedRecipeId, onSearchIn
               <button
                 type="button"
                 onClick={handleClearPromptSearch}
-                className="bg-brand-bg-warm text-brand-text-dark border border-brand-bg-beige px-6 py-3 rounded-brand font-semibold hover:bg-brand-bg-beige transition-all"
+                className="bg-white text-brand-text-dark border border-brand-bg-beige px-6 py-3.5 rounded-brand font-semibold hover:bg-brand-bg-warm transition-all shadow-xs"
               >
                 Clear Search
               </button>
@@ -241,88 +251,39 @@ export default function Recipes({ setCurrentTab, setSelectedRecipeId, onSearchIn
         </form>
       </section>
 
-      {/* TAB SHELF SWITCHER (All Recipes vs Saved Folder) */}
-      <div className="flex justify-between items-center border-b border-brand-text-muted/10 pb-1">
-        <div className="flex gap-6 font-serif text-lg font-bold">
-          <button
-            onClick={() => {
-              setActiveFolderTab('all');
-              setPromptResults(null);
-            }}
-            className={`pb-2 transition-all relative ${
-              activeFolderTab === 'all' && promptResults === null
-                ? 'text-brand-text-dark border-b-2 border-brand-terracotta'
-                : 'text-brand-text-muted hover:text-brand-text-dark border-b-2 border-transparent'
-            }`}
-          >
-            All Recipes
-          </button>
-          
-          <button
-            onClick={() => {
-              setActiveFolderTab('saved');
-              setPromptResults(null);
-            }}
-            className={`pb-2 transition-all relative flex items-center gap-1.5 ${
-              activeFolderTab === 'saved' && promptResults === null
-                ? 'text-brand-text-dark border-b-2 border-brand-terracotta'
-                : 'text-brand-text-muted hover:text-brand-text-dark border-b-2 border-transparent'
-            }`}
-          >
-            <FolderOpen size={16} />
-            My Saved Folder
-          </button>
+      {/* CATEGORY CHIPS ROW (Unified styles, Horizontal Scroll) */}
+      <div className="border-b border-brand-text-muted/10 pb-3 flex flex-col md:flex-row gap-4 justify-between items-start md:items-center w-full">
+        <span className="font-serif text-xl font-bold tracking-tight text-brand-text-dark select-none">
+          {showOnlySaved 
+            ? `Saved Favorites (${filteredRecipes.length})` 
+            : promptResults !== null 
+              ? `Matching Pantry Recipes (${filteredRecipes.length})` 
+              : 'Browse Catalog'}
+        </span>
 
-          {promptResults !== null && (
-            <span className="pb-2 text-brand-terracotta border-b-2 border-brand-terracotta">
-              Pantry Results ({filteredRecipes.length})
-            </span>
-          )}
+        {/* Chips index */}
+        <div className="flex flex-nowrap gap-2 overflow-x-auto pb-2 scrollbar-none snap-x font-sans text-xs w-full md:w-auto">
+          {categoriesList.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`px-4 py-2 rounded-full border transition-all duration-300 font-medium shrink-0 snap-center ${
+                selectedCategory === cat
+                  ? 'bg-brand-terracotta text-brand-bg-warm border-brand-terracotta shadow-xs font-semibold'
+                  : 'bg-white text-brand-text-muted border-brand-bg-beige hover:text-brand-text-dark hover:border-brand-text-muted/30'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* CATALOG BROWSING CONTROLS (Only visible if not viewing active prompt search) */}
-      {promptResults === null && (
-        <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
-          
-          {/* Traditional Search */}
-          <div className="relative max-w-xs w-full font-sans text-xs">
-            <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-brand-text-muted">
-              <Search size={14} />
-            </span>
-            <input
-              type="text"
-              placeholder="Search recipe index..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 rounded-brand border border-brand-bg-beige bg-white focus:outline-none focus:ring-1 focus:ring-brand-terracotta transition-all shadow-xs"
-            />
-          </div>
-
-          {/* Category Chips */}
-          <div className="flex gap-2 overflow-x-auto pb-1 max-w-full scrollbar-none font-sans text-xxs">
-            {categoriesList.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-3 py-1.5 rounded-full border transition-all duration-300 font-medium shrink-0 ${
-                  selectedCategory === cat
-                    ? 'bg-brand-olive text-brand-bg-warm border-brand-olive shadow-xs'
-                    : 'bg-white text-brand-text-muted border-brand-bg-beige hover:text-brand-text-dark'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* 2. LOADING STATE (SKELETON CARDS) */}
       {isLoading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
           {[1, 2, 3].map((idx) => (
-            <div key={idx} className="bg-white rounded-brand border border-brand-bg-beige overflow-hidden p-6 space-y-4 animate-pulse">
+            <div key={idx} className="bg-white rounded-brand border border-brand-bg-beige overflow-hidden p-6 space-y-4 animate-pulse w-full">
               <div className="h-44 bg-brand-bg-warm rounded-brand w-full"></div>
               <div className="h-6 bg-brand-bg-warm rounded w-3/4"></div>
               <div className="h-4 bg-brand-bg-warm rounded w-full"></div>
@@ -335,13 +296,13 @@ export default function Recipes({ setCurrentTab, setSelectedRecipeId, onSearchIn
         </div>
       )}
 
-      {/* 3. ERROR / LOCKOUT STATE */}
+      {/* 3. ERROR STATE */}
       {hasError && !isLoading && (
         <div className="h-64 flex flex-col justify-center items-center border border-brand-terracotta/20 rounded-brand bg-brand-terracotta/5 p-8 max-w-md mx-auto space-y-4">
           <HelpCircle size={36} className="text-brand-terracotta" />
-          <h4 className="font-serif text-base font-bold text-brand-text-dark text-center">Simulated REST API Error</h4>
+          <h4 className="font-serif text-base font-bold text-brand-text-dark text-center">API Match Error</h4>
           <p className="text-xxs text-brand-text-muted font-sans text-center leading-relaxed">
-            The endpoint failed to respond. Please review your backend MongoDB collection connectivity.
+            The matching index server failed to respond. Please review your backend MongoDB collection connectivity.
           </p>
           <button 
             type="button" 
@@ -353,20 +314,20 @@ export default function Recipes({ setCurrentTab, setSelectedRecipeId, onSearchIn
         </div>
       )}
 
-      {/* 4. TRUE MASONRY GRID (CSS Multi-column with break-inside: avoid) */}
+      {/* 4. TRUE MASONRY GRID (Using full content width) */}
       {!isLoading && !hasError && (
-        <>
+        <div className="w-full">
           {filteredRecipes.length > 0 ? (
-            <div className="columns-1 sm:columns-2 lg:columns-3 gap-6 space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
               {filteredRecipes.map((recipe) => {
                 const isSaved = profile.savedRecipes.includes(recipe.id);
                 return (
                   <div
                     key={recipe.id}
-                    className="break-inside-avoid bg-white rounded-brand border border-brand-bg-beige overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 group cursor-pointer flex flex-col relative"
+                    className="bg-white rounded-brand border border-brand-bg-beige overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 group cursor-pointer flex flex-col relative w-full h-full"
                   >
                     
-                    {/* Hover Actions Bar Overlay (LUCIDE ICONS, NO EMOJIS) */}
+                    {/* Hover Actions Bar Overlay */}
                     <div className="absolute top-3 right-3 flex gap-1.5 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                       <button
                         onClick={(e) => {
@@ -435,19 +396,19 @@ export default function Recipes({ setCurrentTab, setSelectedRecipeId, onSearchIn
             </div>
           ) : (
             // 5. EMPTY STATE
-            <div className="h-64 flex flex-col justify-center items-center border border-dashed border-brand-bg-beige rounded-brand bg-white p-6">
+            <div className="h-64 flex flex-col justify-center items-center border border-dashed border-brand-bg-beige rounded-brand bg-white p-6 w-full">
               <UtensilsCrossed size={32} className="text-brand-text-muted opacity-40 mb-3" />
               <h4 className="font-serif text-sm font-bold text-brand-text-dark">No matches found</h4>
               <p className="text-xxs text-brand-text-muted font-sans text-center mt-1 max-w-xs leading-relaxed">
-                {promptResults !== null 
-                  ? "No recipes match your ingredients. Try removing some keywords from your prompt." 
-                  : activeFolderTab === 'saved' 
-                    ? "Your saved folder is empty. Browse recipes to save your favorites!" 
-                    : "No matches match your current filter criteria."}
+                {showOnlySaved 
+                  ? "Your saved favorites list is currently empty. Bookmark some recipes from the catalog to see them here!" 
+                  : promptResults !== null 
+                    ? "No recipes match your pantry ingredients. Try adjusting your search description or clearing the search." 
+                    : "No recipes found matching your search parameters."}
               </p>
             </div>
           )}
-        </>
+        </div>
       )}
 
     </div>

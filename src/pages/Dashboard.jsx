@@ -1,4 +1,5 @@
 import React, { useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AppContext } from '../context/AppContext';
 import { 
   Calendar, 
@@ -15,8 +16,9 @@ import {
   Moon
 } from 'lucide-react';
 
-export default function Dashboard({ setCurrentTab, setSelectedRecipeId }) {
+export default function Dashboard() {
   const { profile, planner, expenses, recipes, blogPosts, notifications } = useContext(AppContext);
+  const navigate = useNavigate();
 
   // Get current hour to set custom greeting
   const getGreeting = () => {
@@ -26,12 +28,14 @@ export default function Dashboard({ setCurrentTab, setSelectedRecipeId }) {
     return { text: `Good Evening, ${profile.name}`, icon: Moon };
   };
 
+  const greetingObj = getGreeting();
+  const GreetingIcon = greetingObj.icon;
 
   // 1. Calculate expense summary
   const totalSpent = expenses.reduce((acc, curr) => acc + curr.amount, 0);
   const budgetPercent = Math.min(Math.round((totalSpent / profile.monthlyBudget) * 100), 100);
 
-  // 2. Recipe Recommendation (e.g. pick first recipe or one not saved)
+  // 2. Recipe Recommendation
   const recommendedRecipe = recipes[0];
 
   // 3. Recent Blog Post
@@ -42,16 +46,16 @@ export default function Dashboard({ setCurrentTab, setSelectedRecipeId }) {
   const completedCount = planner.tasks.filter(t => t.completed).length;
 
   const viewRecipeDetail = (id) => {
-    setSelectedRecipeId(id);
-    setCurrentTab('recipe-detail');
+    navigate(`/recipes/${id}`);
   };
 
   return (
     <div className="space-y-8 animate-slide-up">
       {/* Editorial Header */}
-      <header className="space-y-2 border-b border-brand-text-muted/10 pb-6">
-        <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-brand-text-dark">
-          {getGreeting()}
+      <header className="space-y-3 border-b border-brand-text-muted/10 pb-6">
+        <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-brand-text-dark flex items-center gap-3">
+          <GreetingIcon className="text-brand-gold shrink-0 animate-pulse" size={32} />
+          {greetingObj.text}
         </h1>
         <p className="font-sans text-brand-text-muted text-base max-w-xl">
           Welcome to your quiet corner. Today is a clean slate to nourish yourself, manage your space, and rest.
@@ -81,7 +85,7 @@ export default function Dashboard({ setCurrentTab, setSelectedRecipeId }) {
               <span className="font-sans text-sm text-brand-text-muted">Streak: <strong>{profile.streak} days</strong> of mindful habits</span>
             </div>
             <button 
-              onClick={() => setCurrentTab('planner')}
+              onClick={() => navigate('/planner')}
               className="font-sans text-sm text-brand-terracotta hover:text-brand-cinnamon font-semibold flex items-center gap-1 group/btn"
             >
               Check Habits
@@ -100,10 +104,10 @@ export default function Dashboard({ setCurrentTab, setSelectedRecipeId }) {
             <div className="space-y-2">
               <div className="flex justify-between text-xs text-brand-text-muted font-sans">
                 <span>Monthly Budget</span>
-                <span>${profile.monthlyBudget}</span>
+                <span>₹{profile.monthlyBudget}</span>
               </div>
               <p className="text-3xl font-serif font-bold text-brand-text-dark">
-                ${totalSpent.toFixed(2)}
+                ₹{totalSpent.toFixed(2)}
                 <span className="text-xs text-brand-text-muted font-sans font-normal ml-1">spent so far</span>
               </p>
             </div>
@@ -118,7 +122,7 @@ export default function Dashboard({ setCurrentTab, setSelectedRecipeId }) {
               </div>
               <div className="flex justify-between text-xxs font-sans text-brand-text-muted">
                 <span>{budgetPercent}% spent</span>
-                <span>${(profile.monthlyBudget - totalSpent).toFixed(2)} left</span>
+                <span>₹{(profile.monthlyBudget - totalSpent).toFixed(2)} left</span>
               </div>
             </div>
           </div>
@@ -126,7 +130,7 @@ export default function Dashboard({ setCurrentTab, setSelectedRecipeId }) {
           <div className="pt-4 border-t border-brand-text-muted/10 flex items-center justify-between mt-4">
             <span className="text-xs text-brand-text-muted">Recent: Cinnamon Latte & Scone</span>
             <button 
-              onClick={() => setCurrentTab('expenses')}
+              onClick={() => navigate('/expenses')}
               className="text-xs text-brand-terracotta hover:underline font-semibold"
             >
               Add Expense
@@ -198,7 +202,7 @@ export default function Dashboard({ setCurrentTab, setSelectedRecipeId }) {
           <div className="pt-4 border-t border-brand-text-muted/10 flex items-center justify-between mt-4">
             <span className="text-xs text-brand-text-muted">{completedCount} tasks completed today</span>
             <button 
-              onClick={() => setCurrentTab('planner')}
+              onClick={() => navigate('/planner')}
               className="text-xs text-brand-terracotta hover:underline font-semibold"
             >
               Open Planner
@@ -221,7 +225,7 @@ export default function Dashboard({ setCurrentTab, setSelectedRecipeId }) {
           <div className="pt-4 border-t border-brand-text-muted/10 flex items-center justify-between mt-4">
             <span className="text-xxs text-brand-text-muted font-sans">{featuredBlog.readTime}</span>
             <button 
-              onClick={() => setCurrentTab('blog')}
+              onClick={() => navigate('/blog')}
               className="text-xs text-brand-terracotta hover:underline font-semibold flex items-center gap-0.5 group/btn"
             >
               Read Article
@@ -245,7 +249,7 @@ export default function Dashboard({ setCurrentTab, setSelectedRecipeId }) {
           <div className="pt-4 flex justify-between items-center text-xxs font-sans text-brand-text-muted mt-4">
             <span>Written by you</span>
             <button 
-              onClick={() => setCurrentTab('planner')}
+              onClick={() => navigate('/planner')}
               className="text-brand-terracotta hover:underline font-semibold"
             >
               Edit Note
@@ -279,7 +283,7 @@ export default function Dashboard({ setCurrentTab, setSelectedRecipeId }) {
           <div className="pt-4 border-t border-brand-text-muted/10 flex items-center justify-between mt-4">
             <span className="text-xs text-brand-text-muted">Total 5 notifications in inbox</span>
             <button 
-              onClick={() => setCurrentTab('notifications')}
+              onClick={() => navigate('/notifications')}
               className="text-xs text-brand-terracotta hover:underline font-semibold"
             >
               View All Notifications

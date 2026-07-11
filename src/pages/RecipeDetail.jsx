@@ -1,4 +1,5 @@
 import React, { useState, useContext } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { AppContext } from '../context/AppContext';
 import { 
   ArrowLeft, 
@@ -12,11 +13,13 @@ import {
   Info 
 } from 'lucide-react';
 
-export default function RecipeDetail({ recipeId, setCurrentTab }) {
+export default function RecipeDetail() {
+  const { id } = useParams();
+  const navigate = useNavigate();
   const { recipes, profile, toggleRecipeSaved, addNotification } = useContext(AppContext);
   
   // Find recipe
-  const recipe = recipes.find(r => r.id === recipeId) || recipes[0];
+  const recipe = recipes.find(r => r.id === id) || recipes[0];
   const isSaved = profile.savedRecipes.includes(recipe.id);
 
   // States
@@ -72,7 +75,7 @@ export default function RecipeDetail({ recipeId, setCurrentTab }) {
       {/* Navigation & Actions Top Bar */}
       <div className="flex justify-between items-center pb-2 border-b border-brand-text-muted/10">
         <button
-          onClick={() => setCurrentTab('recipes')}
+          onClick={() => navigate('/recipes')}
           className="font-sans text-xs text-brand-text-muted hover:text-brand-text-dark flex items-center gap-1.5 py-2 group"
         >
           <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
