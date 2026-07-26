@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { auth, googleProvider } from "../firebase/firebase";
+
+import {
+  signInWithEmailAndPassword,
+  signInWithPopup,
+} from "firebase/auth";
 import { 
   Lock, 
   Mail, 
@@ -32,32 +38,34 @@ export default function SignIn() {
   const [errorMessage, setErrorMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSignInSubmit = (e) => {
+  const handleSignInSubmit = async (e) => {
     e.preventDefault();
-    if (lockoutTimer > 0) return;
 
-    setIsSubmitting(true);
-    setErrorMessage('');
+    try {
+      setIsSubmitting(true);
+      setErrorMessage("");
 
-    // Local client-side simulation (pure frontend)
-    setTimeout(() => {
+      await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
+      navigate("/dashboard");
+    } catch (error) {
+      setErrorMessage(error.message);
+    } finally {
       setIsSubmitting(false);
+    }
+  };
 
-      if (password === 'error' || !email || !password) {
-        const nextAttempts = attemptCount + 1;
-        setAttemptCount(nextAttempts);
-
-        if (nextAttempts >= 3) {
-          setLockoutTimer(5);
-          setErrorMessage('Too many attempts. Your account has been temporarily locked. Try again in 5 minutes.');
-        } else {
-          setErrorMessage('Invalid email address or password. Please try again.');
-        }
-      } else {
-        // Successful mock sign in -> Proceed to 2FA view
-        setIs2FAStep(true);
-      }
-    }, 600);
+  const handleGoogleLogin = async () => {
+    try {
+      await signInWithPopup(auth, googleProvider);
+      navigate("/dashboard");
+    } catch (error) {
+      setErrorMessage(error.message);
+    }
   };
 
   const handle2FAVerify = (e) => {
@@ -183,6 +191,26 @@ export default function SignIn() {
                   >
                     {isSubmitting ? 'Verifying...' : 'Sign In'}
                   </button>
+
+                  <div className="flex items-center my-4">
+                    <div className="flex-1 border-t border-gray-300"></div>
+                    <span className="mx-3 text-xs text-gray-500">OR</span>
+                    <div className="flex-1 border-t border-gray-300"></div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleGoogleLogin}
+                    className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-brand py-3 bg-white hover:bg-gray-50 transition"
+                  >
+                    <img
+                      src="https://www.svgrepo.com/show/475656/google-color.svg"
+                      alt="Google"
+                      className="w-5 h-5"
+                    />
+                    Continue with Google
+                  </button>
+
                 </div>
               </form>
             </div>

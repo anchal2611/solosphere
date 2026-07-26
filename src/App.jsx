@@ -13,18 +13,26 @@ import Profile from './pages/Profile';
 import Landing from './pages/Landing';
 import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
     <AppProvider>
       <Routes>
+
         {/* Public Pages */}
         <Route path="/" element={<Landing />} />
         <Route path="/signin" element={<SignIn />} />
         <Route path="/signup" element={<SignUp />} />
 
-        {/* Internal Application Pages (Shared Layout with Sticky Sidebar) */}
-        <Route element={<Layout />}>
+        {/* Protected Pages */}
+        <Route
+          element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }
+        >
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/recipes" element={<Recipes />} />
           <Route path="/recipes/:id" element={<RecipeDetail />} />
@@ -37,6 +45,7 @@ function App() {
 
         {/* Redirect unknown routes */}
         <Route path="*" element={<Navigate to="/" replace />} />
+
       </Routes>
     </AppProvider>
   );

@@ -1,6 +1,8 @@
 import React, { useState, useContext } from 'react';
 import { useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { AppContext } from '../context/AppContext';
+
+import { useAuth } from "../context/AuthContext";
 import { 
   Home, 
   BookOpen, 
@@ -23,6 +25,7 @@ export default function Layout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   // Count unread notifications (simple mock)
   const unreadCount = notifications.filter(n => n.group === 'Today').length;
@@ -42,8 +45,9 @@ export default function Layout() {
     setMobileMenuOpen(false);
   };
 
-  const handleLogout = () => {
-    navigate('/');
+  const handleLogout = async () => {
+    await logout();
+    navigate("/signin");
   };
 
   // Time-of-day greeting & icon setup ( Lucide icons, no emojis)

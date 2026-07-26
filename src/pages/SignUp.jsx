@@ -1,10 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+
+import { auth, googleProvider } from "../firebase/firebase";
+
+import {
+  createUserWithEmailAndPassword,
+  updateProfile,
+  signInWithPopup,
+} from "firebase/auth";
+
 import { 
   Lock, 
   Mail, 
   User, 
-  Check, 
+  Check,
+  CheckCircle2,
   ArrowLeft, 
   Eye, 
   EyeOff, 
@@ -117,26 +127,48 @@ export default function SignUp() {
   const [submitError, setSubmitError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Touch all fields to show any existing errors
+
     setTouched({
       fullName: true,
       email: true,
       password: true,
       confirmPassword: true,
-      terms: true
+      terms: true,
     });
 
-    if (Object.keys(errors).length === 0) {
+    if (Object.keys(errors).length !== 0) return;
+
+    try {
       setIsSubmitting(true);
-      setSubmitError('');
-      
-      // Simulate client success and navigate to SignIn page
-      setTimeout(() => {
-        setIsSubmitting(false);
-        navigate('/signin');
-      }, 500);
+      setSubmitError("");
+
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
+      await updateProfile(userCredential.user, {
+        displayName: fullName,
+      });
+
+      navigate("/dashboard");
+
+    } catch (error) {
+      setSubmitError(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleGoogleSignup = async () => {
+    try {
+      await signInWithPopup(auth, googleProvider);
+      navigate("/dashboard");
+    } catch (error) {
+      setSubmitError(error.message);
     }
   };
 
@@ -331,6 +363,25 @@ export default function SignUp() {
               >
                 {isSubmitting ? 'Creating account...' : 'Create My Account'}
               </button>
+
+              <div className="flex items-center my-4">
+                <div className="flex-1 border-t border-gray-300"></div>
+                <span className="mx-3 text-xs text-gray-500">OR</span>
+                <div className="flex-1 border-t border-gray-300"></div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleGoogleSignup}
+                className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-brand py-3 bg-white hover:bg-gray-50 transition"
+              >
+                <img
+                  src="https://www.svgrepo.com/show/475656/google-color.svg"
+                  alt="Google"
+                  className="w-5 h-5"
+                />
+                Continue with Google
+              </button>              
             </div>
 
           </form>
