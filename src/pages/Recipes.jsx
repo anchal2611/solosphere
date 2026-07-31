@@ -64,8 +64,8 @@ export default function Recipes() {
     setPromptText(prev => prev.replace(regex, '').replace(/\s+/g, ' ').trim());
   };
 
-  // Submit Prompt to search (Local simulation)
-  const handlePromptSearch = (e) => {
+  // Submit Prompt to search (Live FastAPI + Gemini backend)
+  const handlePromptSearch = async (e) => {
     e.preventDefault();
     if (!promptText.trim()) return;
 
@@ -73,29 +73,36 @@ export default function Recipes() {
     setPromptResults(null);
     setHasError(false);
 
-    setTimeout(() => {
-      setIsLoading(false);
-      
-      if (promptText.toLowerCase().includes('error')) {
-        setHasError(true);
-        return;
-      }
-
-      if (parsedIngredients.length === 0) {
-        setPromptResults([]);
-        return;
-      }
-
-      const matches = recipes.filter(recipe => {
-        return parsedIngredients.some(keyword => {
-          return recipe.ingredients.some(ing => ing.toLowerCase().includes(keyword)) ||
-                 recipe.title.toLowerCase().includes(keyword);
-        });
+    try {
+      const response = await fetch("http://127.0.0.1:7860/recipes/search", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ query: promptText })
       });
 
-      setPromptResults(matches);
-      setShowOnlySaved(false); // Clear saved filter when showing prompt results to prevent state conflicts
-    }, 1200);
+      if (!response.ok) {
+        throw new Error("Failed to search recipes");
+      }
+
+      const data = await response.json();
+      if (data.success && Array.isArray(data.recipes)) {
+        setPromptResults(data.recipes);
+        // Overwrite client-side keywords with Gemini's precise extraction
+        if (data.preferences && Array.isArray(data.preferences.ingredients)) {
+          setParsedIngredients(data.preferences.ingredients);
+        }
+      } else {
+        setPromptResults([]);
+      }
+      setShowOnlySaved(false); // Clear saved filter
+    } catch (error) {
+      console.error("Search failed:", error);
+      setHasError(true);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Category tags
@@ -104,7 +111,7 @@ export default function Recipes() {
   // Base list to show in grid (filters by saved booklet vs prompt index)
   const getBaseRecipes = () => {
     if (showOnlySaved) {
-      return recipes.filter(r => profile.savedRecipes.includes(r.id));
+      return recipes.filter(r => profile.savedRecipes.map(String).includes(String(r.id)));
     }
     if (promptResults !== null) {
       return promptResults;
@@ -320,7 +327,7 @@ export default function Recipes() {
           {filteredRecipes.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
               {filteredRecipes.map((recipe) => {
-                const isSaved = profile.savedRecipes.includes(recipe.id);
+                const isSaved = profile.savedRecipes.map(String).includes(String(recipe.id));
                 return (
                   <div
                     key={recipe.id}

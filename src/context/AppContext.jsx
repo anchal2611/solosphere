@@ -45,7 +45,7 @@ export const AppProvider = ({ children }) => {
   ]));
 
   // 4. Recipes Database (ReadOnly mockup list, but saved state is in profile.savedRecipes)
-  const recipes = [
+  const INITIAL_RECIPES = [
     {
       id: 1,
       title: 'Warm Fig & Honey Oatmeal',
@@ -182,6 +182,8 @@ export const AppProvider = ({ children }) => {
       }
     }
   ];
+  const [recipes, setRecipes] = useState(INITIAL_RECIPES);
+
 
   // 5. Planner State
   const [planner, setPlanner] = useState(() => getInitialData('solosphere_planner', {
@@ -293,6 +295,23 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('solosphere_notifications', JSON.stringify(notifications));
   }, [notifications]);
 
+  useEffect(() => {
+    const fetchRandomRecipes = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:7860/recipes/random?limit=12");
+        if (response.ok) {
+          const data = await response.json();
+          if (Array.isArray(data) && data.length > 0) {
+            setRecipes(data);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching random recipes from backend:", error);
+      }
+    };
+    fetchRandomRecipes();
+  }, []);
+
   // Operations
   const addExpense = (expense) => {
     const newExpense = {
@@ -332,11 +351,12 @@ export const AppProvider = ({ children }) => {
   };
 
   const toggleRecipeSaved = (id) => {
+    const stringId = String(id);
     setProfile(prev => {
-      const isSaved = prev.savedRecipes.includes(id);
+      const isSaved = prev.savedRecipes.map(String).includes(stringId);
       const savedRecipes = isSaved
-        ? prev.savedRecipes.filter(rid => rid !== id)
-        : [...prev.savedRecipes, id];
+        ? prev.savedRecipes.map(String).filter(rid => rid !== stringId)
+        : [...prev.savedRecipes.map(String), stringId];
       
       // Notify
       setTimeout(() => {

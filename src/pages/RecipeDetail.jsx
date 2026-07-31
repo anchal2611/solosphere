@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppContext } from '../context/AppContext';
 import { 
@@ -18,14 +18,48 @@ export default function RecipeDetail() {
   const navigate = useNavigate();
   const { recipes, profile, toggleRecipeSaved, addNotification } = useContext(AppContext);
   
-  // Find recipe
-  const recipe = recipes.find(r => r.id === id) || recipes[0];
-  const isSaved = profile.savedRecipes.includes(recipe.id);
+  const [recipe, setRecipe] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // States
   const [checkedIngredients, setCheckedIngredients] = useState({});
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedSuggestion, setGeneratedSuggestion] = useState(null);
+
+  useEffect(() => {
+    const fetchRecipe = async () => {
+      setLoading(true);
+      setError(null);
+
+      // Check local context first
+      const localMatch = recipes.find(r => String(r.id) === String(id));
+      if (localMatch) {
+        setRecipe(localMatch);
+        setLoading(false);
+        return;
+      }
+
+      // Otherwise fetch from FastAPI
+      try {
+        const response = await fetch(`http://127.0.0.1:7860/recipes/${id}`);
+        if (!response.ok) {
+          throw new Error("Recipe not found");
+        }
+        const data = await response.json();
+        setRecipe(data);
+      } catch (err) {
+        console.error("Error loading recipe:", err);
+        setError("Recipe could not be loaded.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRecipe();
+  }, [id, recipes]);
+
+  const isSaved = recipe ? profile.savedRecipes.map(String).includes(String(recipe.id)) : false;
 
   // Toggle ingredient checklist
   const toggleIngredient = (idx) => {
@@ -68,6 +102,29 @@ export default function RecipeDetail() {
       });
     }, 1200);
   };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4 font-sans text-brand-text-muted">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-terracotta"></div>
+        <p className="text-xs">Loading recipe details...</p>
+      </div>
+    );
+  }
+
+  if (error || !recipe) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4 font-sans text-brand-text-muted">
+        <p className="text-sm font-semibold text-brand-text-dark">{error || "Recipe not found"}</p>
+        <button
+          onClick={() => navigate('/recipes')}
+          className="bg-brand-terracotta text-brand-bg-warm px-4 py-2 rounded-brand text-xs font-semibold"
+        >
+          Back to Recipes
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-slide-up max-w-4xl mx-auto">
