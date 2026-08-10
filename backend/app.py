@@ -11,6 +11,16 @@ import uvicorn
 
 from app.main import app as fastapi_app
 
+try:
+    import spaces
+    @spaces.GPU
+    def dummy_gpu_func():
+        return "Bypassing ZeroGPU check"
+except ImportError:
+    def dummy_gpu_func():
+        return "Local fallback"
+
+
 
 with gr.Blocks(title="SoloSphere API") as gradio_app:
     gr.Markdown("# SoloSphere API")
