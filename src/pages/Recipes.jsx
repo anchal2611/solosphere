@@ -74,7 +74,7 @@ export default function Recipes() {
     setHasError(false);
 
     try {
-      const response = await fetch("http://127.0.0.1:7860/recipes/search", {
+      const response = await fetch("/api/search", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

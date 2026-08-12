@@ -1,4 +1,7 @@
 import React, { createContext, useState, useEffect } from 'react';
+import { useAuth } from './AuthContext';
+import { db } from '../firebase/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 export const AppContext = createContext();
 
@@ -274,7 +277,103 @@ export const AppProvider = ({ children }) => {
     { id: '5', type: 'system', text: 'Welcome to SoloSphere! Let\'s create a peaceful space.', time: 'July 5', group: 'Earlier' }
   ]));
 
-  // Sync to localStorage
+  // Sync to localStorage/Firestore
+  const { user } = useAuth();
+
+  // Load state from Firestore on user login
+  useEffect(() => {
+    if (!user) {
+      // If user logs out, reset states back to local storage data (or default config)
+      setProfile(getInitialData('solosphere_profile', {
+        name: 'Anshika',
+        avatar: 'default',
+        monthlyBudget: 1200,
+        wellnessGoal: 'To cultivate daily mindfulness and appreciate the quiet moments.',
+        streak: 8,
+        savedRecipes: [1, 3]
+      }));
+      setCategories(getInitialData('solosphere_categories', [
+        { id: 1, name: 'Groceries', limit: 400, spent: 0, color: '#8FBC8F' },
+        { id: 2, name: 'Cozy Cafe', limit: 150, spent: 0, color: '#CD853F' },
+        { id: 3, name: 'Self Care', limit: 200, spent: 0, color: '#D8BFD8' },
+        { id: 4, name: 'Hobby Craft', limit: 100, spent: 0, color: '#F0E68C' }
+      ]));
+      setExpenses(getInitialData('solosphere_expenses', []));
+      setPlanner(getInitialData('solosphere_planner', {
+        notes: '',
+        habits: [
+          { name: 'Water Plants', done: [false, false, false, false, false, false, false] },
+          { name: 'Evening Tea', done: [false, false, false, false, false, false, false] },
+          { name: 'Read a Chapter', done: [false, false, false, false, false, false, false] }
+        ],
+        tasks: [
+          { id: '1', text: 'Repot the monstera cutting', completed: false, category: 'plants' },
+          { id: '2', text: 'Organize pantry spices', completed: true, category: 'kitchen' },
+          { id: '3', text: 'Write in evening journal', completed: false, category: 'mind' }
+        ]
+      }));
+      setNotifications(getInitialData('solosphere_notifications', [
+        { id: '1', type: 'reminder', text: 'Your sourdough starter needs feeding!', time: '10:15 AM', group: 'Today' },
+        { id: '2', type: 'info', text: 'You completed all your wellness habits yesterday. Great job!', time: '9:00 PM', group: 'Yesterday' },
+        { id: '3', type: 'save', text: 'Saved "Warm Fig & Honey Oatmeal" to your breakfast planner.', time: '8:30 AM', group: 'Yesterday' },
+        { id: '4', type: 'warning', text: 'Cozy Cafe budget is nearing 85% of limit.', time: '2:15 PM', group: 'Earlier' },
+        { id: '5', type: 'system', text: 'Welcome to SoloSphere! Let\'s create a peaceful space.', time: 'July 5', group: 'Earlier' }
+      ]));
+      return;
+    }
+
+    const loadFirebaseData = async () => {
+      try {
+        const userDocRef = doc(db, "users", user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+        
+        if (userDocSnap.exists()) {
+          const data = userDocSnap.data();
+          if (data.profile) setProfile(data.profile);
+          if (data.categories) setCategories(data.categories);
+          if (data.expenses) setExpenses(data.expenses);
+          if (data.planner) setPlanner(data.planner);
+          if (data.notifications) setNotifications(data.notifications);
+        } else {
+          // Initialize user document in Firestore with current state
+          const initialData = {
+            profile: {
+              ...profile,
+              name: user.displayName || profile.name,
+              email: user.email || ""
+            },
+            categories,
+            expenses,
+            planner,
+            notifications
+          };
+          await setDoc(userDocRef, initialData);
+          setProfile(initialData.profile);
+        }
+      } catch (error) {
+        console.error("Error loading user data from Firebase:", error);
+      }
+    };
+
+    loadFirebaseData();
+  }, [user]);
+
+  // Sync to Firestore whenever state changes (only if user is logged in)
+  useEffect(() => {
+    if (!user) return;
+    const userDocRef = doc(db, "users", user.uid);
+    setDoc(userDocRef, {
+      profile,
+      categories,
+      expenses,
+      planner,
+      notifications
+    }, { merge: true }).catch(err => {
+      console.error("Error syncing state to Firestore:", err);
+    });
+  }, [profile, categories, expenses, planner, notifications, user]);
+
+  // Keep local storage sync active regardless of user login as offline backup
   useEffect(() => {
     localStorage.setItem('solosphere_profile', JSON.stringify(profile));
   }, [profile]);
@@ -298,7 +397,7 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     const fetchRandomRecipes = async () => {
       try {
-        const response = await fetch("http://127.0.0.1:7860/recipes/random?limit=12");
+        const response = await fetch("/api/random?limit=12");
         if (response.ok) {
           const data = await response.json();
           if (Array.isArray(data) && data.length > 0) {

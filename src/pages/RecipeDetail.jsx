@@ -42,7 +42,7 @@ export default function RecipeDetail() {
 
       // Otherwise fetch from FastAPI
       try {
-        const response = await fetch(`http://127.0.0.1:7860/recipes/${id}`);
+        const response = await fetch(`/api/detail?id=${id}`);
         if (!response.ok) {
           throw new Error("Recipe not found");
         }
