@@ -3,12 +3,13 @@ import { AppContext } from '../context/AppContext';
 import { Clock, Calendar, ArrowRight, X, Heart, MessageSquare } from 'lucide-react';
 
 export default function Blog() {
-  const { blogPosts } = useContext(AppContext);
+  const { blogPosts, profile, toggleBlogLiked } = useContext(AppContext);
   const [selectedPost, setSelectedPost] = useState(null);
-  const [likedPosts, setLikedPosts] = useState({});
 
   const featuredPost = blogPosts.find(post => post.featured) || blogPosts[0];
   const gridPosts = blogPosts.filter(post => post.id !== featuredPost.id);
+
+  const isPostLiked = (postId) => (profile.likedBlogs || []).map(String).includes(String(postId));
 
   const handlePostClick = (post) => {
     setSelectedPost(post);
@@ -16,10 +17,7 @@ export default function Blog() {
 
   const toggleLike = (postId, e) => {
     e.stopPropagation();
-    setLikedPosts(prev => ({
-      ...prev,
-      [postId]: !prev[postId]
-    }));
+    toggleBlogLiked(postId);
   };
 
   return (
@@ -128,13 +126,13 @@ export default function Blog() {
                 <button 
                   onClick={(e) => toggleLike(post.id, e)}
                   className={`flex items-center gap-1 px-2.5 py-1 rounded-full border transition-all ${
-                    likedPosts[post.id]
+                    isPostLiked(post.id)
                       ? 'bg-brand-terracotta/5 border-brand-terracotta/20 text-brand-terracotta'
                       : 'border-brand-bg-beige hover:border-brand-text-muted/30 text-brand-text-muted'
                   }`}
                 >
-                  <Heart size={11} className={likedPosts[post.id] ? 'fill-brand-terracotta' : ''} />
-                  <span>{likedPosts[post.id] ? 'Liked' : 'Like'}</span>
+                  <Heart size={11} className={isPostLiked(post.id) ? 'fill-brand-terracotta' : ''} />
+                  <span>{isPostLiked(post.id) ? 'Liked' : 'Like'}</span>
                 </button>
               </div>
             </div>

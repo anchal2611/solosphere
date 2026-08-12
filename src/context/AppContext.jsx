@@ -26,7 +26,8 @@ export const AppProvider = ({ children }) => {
     monthlyBudget: 1200,
     wellnessGoal: 'To cultivate daily mindfulness and appreciate the quiet moments.',
     streak: 8,
-    savedRecipes: [1, 3]
+    savedRecipes: [1, 3],
+    likedBlogs: []
   }));
 
   // 2. Expense Categories State
@@ -290,7 +291,8 @@ export const AppProvider = ({ children }) => {
         monthlyBudget: 1200,
         wellnessGoal: 'To cultivate daily mindfulness and appreciate the quiet moments.',
         streak: 8,
-        savedRecipes: [1, 3]
+        savedRecipes: [1, 3],
+        likedBlogs: []
       }));
       setCategories(getInitialData('solosphere_categories', [
         { id: 1, name: 'Groceries', limit: 400, spent: 0, color: '#8FBC8F' },
@@ -471,6 +473,28 @@ export const AppProvider = ({ children }) => {
     });
   };
 
+  const toggleBlogLiked = (id) => {
+    const stringId = String(id);
+    setProfile(prev => {
+      const likedBlogs = prev.likedBlogs || [];
+      const isLiked = likedBlogs.map(String).includes(stringId);
+      const updated = isLiked
+        ? likedBlogs.map(String).filter(bid => bid !== stringId)
+        : [...likedBlogs.map(String), stringId];
+
+      setTimeout(() => {
+        addNotification({
+          type: 'save',
+          text: isLiked ? `Removed article from liked collection.` : `Liked article and added to Solo Journal notes!`,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          group: 'Today'
+        });
+      }, 100);
+
+      return { ...prev, likedBlogs: updated };
+    });
+  };
+
   const toggleTask = (id) => {
     setPlanner(prev => {
       const tasks = prev.tasks.map(task =>
@@ -550,6 +574,7 @@ export const AppProvider = ({ children }) => {
       updateCategory,
       deleteCategory,
       toggleRecipeSaved,
+      toggleBlogLiked,
       toggleTask,
       addTask,
       deleteTask,
