@@ -19,14 +19,35 @@ export default function Planner() {
     addTask, 
     deleteTask, 
     updateNotes, 
-    toggleHabitDay 
+    toggleHabitDay,
+    updateWeeklyAnchor,
+    addPlannerGoal,
+    deletePlannerGoal,
+    addPlannerHabit,
+    deletePlannerHabit
   } = useContext(AppContext);
 
   const [newTaskText, setNewTaskText] = useState('');
   const [noteContent, setNoteContent] = useState(planner.notes);
   const [saveStatus, setSaveStatus] = useState('Saved');
+  const [newGoalText, setNewGoalText] = useState('');
+  const [newHabitName, setNewHabitName] = useState('');
 
   const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  const handleAddGoalSubmit = (e) => {
+    e.preventDefault();
+    if (!newGoalText.trim()) return;
+    addPlannerGoal(newGoalText.trim());
+    setNewGoalText('');
+  };
+
+  const handleAddHabitSubmit = (e) => {
+    e.preventDefault();
+    if (!newHabitName.trim()) return;
+    addPlannerHabit(newHabitName.trim());
+    setNewHabitName('');
+  };
 
   const handleAddTaskSubmit = (e) => {
     e.preventDefault();
@@ -140,9 +161,14 @@ export default function Planner() {
 
             <div className="grid grid-cols-1 gap-2.5 max-h-[340px] overflow-y-auto pr-1 text-xs">
               {Object.keys(planner.weekly).map((day) => (
-                <div key={day} className="flex gap-3 py-1.5 px-2 bg-brand-bg-warm/30 rounded-brand-sm border border-brand-bg-beige/40">
-                  <span className="font-serif font-bold text-brand-terracotta shrink-0 w-8">{day}</span>
-                  <span className="font-sans text-brand-text-dark">{planner.weekly[day]}</span>
+                <div key={day} className="flex items-center gap-2 py-0.5 px-2 bg-brand-bg-warm/30 rounded-brand-sm border border-brand-bg-beige/40">
+                  <span className="font-serif font-bold text-brand-terracotta shrink-0 w-8 select-none">{day}</span>
+                  <input
+                    type="text"
+                    value={planner.weekly[day]}
+                    onChange={(e) => updateWeeklyAnchor(day, e.target.value)}
+                    className="font-sans text-brand-text-dark bg-transparent border-0 w-full focus:outline-none focus:bg-white/80 rounded px-1 py-0.5 leading-snug"
+                  />
                 </div>
               ))}
             </div>
@@ -160,12 +186,38 @@ export default function Planner() {
 
             <ul className="space-y-3 font-sans text-xs">
               {planner.goals.map((goal, idx) => (
-                <li key={idx} className="flex items-start gap-2.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-brand-gold mt-1.5 shrink-0"></span>
-                  <span className="text-brand-text-dark leading-relaxed font-medium">{goal}</span>
+                <li key={idx} className="flex items-start justify-between gap-2 group">
+                  <div className="flex items-start gap-2.5 min-w-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-brand-gold mt-1.5 shrink-0"></span>
+                    <span className="text-brand-text-dark leading-relaxed font-medium">{goal}</span>
+                  </div>
+                  <button 
+                    onClick={() => deletePlannerGoal(idx)}
+                    className="text-brand-text-muted hover:text-brand-terracotta opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-brand-bg-warm shrink-0 duration-200 cursor-pointer"
+                    title="Delete goal"
+                  >
+                    <X size={10} />
+                  </button>
                 </li>
               ))}
             </ul>
+
+            {/* Add Goal Input */}
+            <form onSubmit={handleAddGoalSubmit} className="mt-3 pt-3 border-t border-brand-text-muted/10 flex gap-1.5 font-sans text-xxs">
+              <input 
+                type="text"
+                placeholder="New aspiration..."
+                value={newGoalText}
+                onChange={(e) => setNewGoalText(e.target.value)}
+                className="flex-1 px-2 py-1.5 border border-brand-bg-beige rounded bg-brand-bg-warm/30 focus:bg-white focus:outline-none"
+              />
+              <button 
+                type="submit"
+                className="bg-brand-gold text-brand-text-dark px-2.5 py-1.5 rounded hover:bg-brand-gold/80 transition-all font-semibold cursor-pointer"
+              >
+                Add
+              </button>
+            </form>
           </div>
 
           {/* Quick Notes Journal Pad */}
@@ -221,14 +273,25 @@ export default function Planner() {
             <tbody>
               {planner.habits.map((habit) => (
                 <tr key={habit.id} className="border-b border-brand-bg-warm/50 hover:bg-brand-bg-warm/10 transition-colors">
-                  <td className="py-4 px-4 font-medium text-brand-text-dark">{habit.name}</td>
+                  <td className="py-4 px-4 font-medium text-brand-text-dark">
+                    <div className="flex items-center justify-between group/habit">
+                      <span>{habit.name}</span>
+                      <button
+                        onClick={() => deletePlannerHabit(habit.id)}
+                        className="text-brand-text-muted hover:text-brand-terracotta opacity-0 group-hover/habit:opacity-100 transition-opacity p-1 rounded hover:bg-brand-bg-warm shrink-0 duration-200 cursor-pointer ml-2"
+                        title="Delete habit"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </td>
                   {daysOfWeek.map((day) => {
                     const completed = habit.history[day];
                     return (
                       <td key={day} className="text-center py-4 px-2">
                         <button
                           onClick={() => toggleHabitDay(habit.id, day)}
-                          className={`w-6 h-6 rounded-full transition-all duration-300 flex items-center justify-center mx-auto hover:scale-105 active:scale-95 ${
+                          className={`w-6 h-6 rounded-full transition-all duration-300 flex items-center justify-center mx-auto hover:scale-105 active:scale-95 cursor-pointer ${
                             completed
                               ? 'bg-brand-olive text-brand-bg-warm shadow-xs'
                               : 'bg-brand-bg-warm hover:bg-brand-bg-beige border border-brand-bg-beige text-transparent'
@@ -245,6 +308,23 @@ export default function Planner() {
             </tbody>
           </table>
         </div>
+
+        {/* Add Habit Input */}
+        <form onSubmit={handleAddHabitSubmit} className="mt-6 pt-4 border-t border-brand-text-muted/10 flex items-center gap-2 max-w-sm font-sans text-xs">
+          <input 
+            type="text"
+            placeholder="Add a new habit to track..."
+            value={newHabitName}
+            onChange={(e) => setNewHabitName(e.target.value)}
+            className="flex-1 px-3 py-2 border border-brand-bg-beige rounded bg-brand-bg-warm/30 focus:bg-white focus:outline-none"
+          />
+          <button 
+            type="submit"
+            className="bg-brand-olive text-brand-bg-warm px-4 py-2 rounded font-semibold hover:bg-brand-sage transition-all cursor-pointer"
+          >
+            Add Habit
+          </button>
+        </form>
       </section>
 
     </div>

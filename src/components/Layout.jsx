@@ -27,8 +27,8 @@ export default function Layout() {
   const navigate = useNavigate();
   const { logout } = useAuth();
 
-  // Count unread notifications (simple mock)
-  const unreadCount = notifications.filter(n => n.group === 'Today').length;
+  // Count unread notifications
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   const menuItems = [
     { id: 'dashboard', label: 'Home', icon: Home },

@@ -563,6 +563,49 @@ export const AppProvider = ({ children }) => {
     });
   };
 
+  const updateWeeklyAnchor = (day, text) => {
+    setPlanner(prev => ({
+      ...prev,
+      weekly: {
+        ...prev.weekly,
+        [day]: text
+      }
+    }));
+  };
+
+  const addPlannerGoal = (goal) => {
+    setPlanner(prev => ({
+      ...prev,
+      goals: [...(prev.goals || []), goal]
+    }));
+  };
+
+  const deletePlannerGoal = (index) => {
+    setPlanner(prev => ({
+      ...prev,
+      goals: (prev.goals || []).filter((_, i) => i !== index)
+    }));
+  };
+
+  const addPlannerHabit = (name) => {
+    const newHabit = {
+      id: 'h_' + Date.now().toString(),
+      name,
+      history: { Mon: false, Tue: false, Wed: false, Thu: false, Fri: false, Sat: false, Sun: false }
+    };
+    setPlanner(prev => ({
+      ...prev,
+      habits: [...(prev.habits || []), newHabit]
+    }));
+  };
+
+  const deletePlannerHabit = (id) => {
+    setPlanner(prev => ({
+      ...prev,
+      habits: (prev.habits || []).filter(h => h.id !== id)
+    }));
+  };
+
   const addNotification = (notif) => {
     const newNotif = {
       id: Date.now().toString(),
@@ -605,6 +648,11 @@ export const AppProvider = ({ children }) => {
       deleteTask,
       updateNotes,
       toggleHabitDay,
+      updateWeeklyAnchor,
+      addPlannerGoal,
+      deletePlannerGoal,
+      addPlannerHabit,
+      deletePlannerHabit,
       addNotification,
       clearNotifications,
       markNotificationAsRead,
