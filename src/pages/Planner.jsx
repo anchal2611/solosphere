@@ -84,16 +84,16 @@ export default function Planner() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Today's Tasks */}
-        <div className="bg-white p-6 rounded-brand shadow-sm border border-brand-bg-beige flex flex-col justify-between hover:shadow-md transition-shadow duration-300">
-          <div className="space-y-4">
-            <div className="flex justify-between items-baseline border-b border-brand-bg-warm pb-3">
+        <div className="bg-white p-6 rounded-brand shadow-sm border border-brand-bg-beige flex flex-col hover:shadow-md transition-shadow duration-300">
+          <div className="flex flex-col flex-1 min-h-0 space-y-4">
+            <div className="flex justify-between items-baseline border-b border-brand-bg-warm pb-3 shrink-0">
               <h3 className="font-serif text-lg font-bold text-brand-text-dark">Today's Priorities</h3>
               <span className="text-xxs text-brand-text-muted font-sans">Checklist</span>
             </div>
 
             {/* Tasks list */}
             {planner.tasks.length > 0 ? (
-              <ul className="space-y-3 max-h-72 overflow-y-auto pr-1">
+              <ul className="space-y-3 flex-1 overflow-y-auto pr-1">
                 {planner.tasks.map((task) => (
                   <li 
                     key={task.id} 
@@ -118,7 +118,7 @@ export default function Planner() {
                     </div>
                     <button 
                       onClick={() => deleteTask(task.id)}
-                      className="text-brand-text-muted hover:text-brand-terracotta opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-brand-bg-warm shrink-0 duration-200"
+                      className="text-brand-text-muted hover:text-brand-terracotta opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-brand-bg-warm shrink-0 duration-200 cursor-pointer"
                       title="Delete task"
                     >
                       <Trash2 size={12} />
@@ -127,7 +127,7 @@ export default function Planner() {
                 ))}
               </ul>
             ) : (
-              <div className="py-8 text-center">
+              <div className="py-8 text-center flex-1 flex flex-col justify-center">
                 <p className="font-sans text-xs text-brand-text-muted">No priorities set for today.</p>
               </div>
             )}
@@ -153,14 +153,14 @@ export default function Planner() {
         </div>
 
         {/* Weekly Grid */}
-        <div className="bg-white p-6 rounded-brand shadow-sm border border-brand-bg-beige hover:shadow-md transition-shadow duration-300 flex flex-col justify-between">
-          <div className="space-y-4">
-            <div className="flex justify-between items-baseline border-b border-brand-bg-warm pb-3">
+        <div className="bg-white p-6 rounded-brand shadow-sm border border-brand-bg-beige hover:shadow-md transition-shadow duration-300 flex flex-col">
+          <div className="flex flex-col flex-1 min-h-0 space-y-4">
+            <div className="flex justify-between items-baseline border-b border-brand-bg-warm pb-3 shrink-0">
               <h3 className="font-serif text-lg font-bold text-brand-text-dark">Weekly Anchor</h3>
               <span className="text-xxs text-brand-text-muted font-sans">Notes</span>
             </div>
 
-            <div className="grid grid-cols-1 gap-2.5 max-h-[340px] overflow-y-auto pr-1 text-xs">
+            <div className="grid grid-cols-1 gap-2 flex-1 text-xs justify-center">
               {Object.keys(planner.weekly).map((day) => (
                 <div key={day} className="flex items-center gap-2 py-0.5 px-2 bg-brand-bg-warm/30 rounded-brand-sm border border-brand-bg-beige/40">
                   <span className="font-serif font-bold text-brand-terracotta shrink-0 w-8 select-none">{day}</span>
@@ -168,7 +168,7 @@ export default function Planner() {
                     type="text"
                     value={planner.weekly[day]}
                     onChange={(e) => updateWeeklyAnchor(day, e.target.value)}
-                    className="font-sans text-brand-text-dark bg-transparent border-0 w-full focus:outline-none focus:bg-white/80 rounded px-1 py-0.5 leading-snug"
+                    className="font-sans text-brand-text-dark bg-transparent border-0 w-full focus:outline-none focus:bg-white/80 rounded px-1.5 py-0.5 leading-snug"
                   />
                 </div>
               ))}
@@ -177,9 +177,9 @@ export default function Planner() {
         </div>
 
         {/* Monthly Goals & Quick Note pad */}
-        <div className="space-y-6">
+        <div className="space-y-6 flex flex-col h-full lg:col-span-1 col-span-1">
           {/* Monthly Goals */}
-          <div className="bg-white p-6 rounded-brand shadow-sm border border-brand-bg-beige hover:shadow-md transition-shadow duration-300">
+          <div className="bg-white p-6 rounded-brand shadow-sm border border-brand-bg-beige hover:shadow-md transition-shadow duration-300 shrink-0">
             <div className="flex justify-between items-baseline border-b border-brand-bg-warm pb-3 mb-4">
               <h3 className="font-serif text-lg font-bold text-brand-text-dark">Monthly Aspirations</h3>
               <span className="text-xxs text-brand-text-muted font-sans">Goals</span>
@@ -204,17 +204,17 @@ export default function Planner() {
             </ul>
 
             {/* Add Goal Input */}
-            <form onSubmit={handleAddGoalSubmit} className="mt-3 pt-3 border-t border-brand-text-muted/10 flex gap-1.5 font-sans text-xxs">
+            <form onSubmit={handleAddGoalSubmit} className="mt-3 pt-3 border-t border-brand-text-muted/10 flex gap-1.5 font-sans text-xs items-center">
               <input 
                 type="text"
                 placeholder="New aspiration..."
                 value={newGoalText}
                 onChange={(e) => setNewGoalText(e.target.value)}
-                className="flex-1 px-2 py-1.5 border border-brand-bg-beige rounded bg-brand-bg-warm/30 focus:bg-white focus:outline-none"
+                className="flex-1 px-2.5 py-1.5 border border-brand-bg-beige rounded-brand-sm bg-brand-bg-warm/30 focus:bg-white focus:outline-none"
               />
               <button 
                 type="submit"
-                className="bg-brand-gold text-brand-text-dark px-2.5 py-1.5 rounded hover:bg-brand-gold/80 transition-all font-semibold cursor-pointer"
+                className="bg-brand-terracotta text-brand-bg-warm px-3.5 py-1.5 rounded-brand-sm hover:bg-brand-cinnamon transition-all font-sans font-semibold cursor-pointer text-xs shrink-0"
               >
                 Add
               </button>
@@ -222,7 +222,7 @@ export default function Planner() {
           </div>
 
           {/* Quick Notes Journal Pad */}
-          <div className="bg-[#FFFDF4] p-6 rounded-brand shadow-sm border border-[#F5EAD4] flex flex-col justify-between relative overflow-hidden">
+          <div className="bg-[#FFFDF4] p-6 rounded-brand shadow-sm border border-[#F5EAD4] flex flex-col flex-1 relative overflow-hidden">
             <div className="flex justify-between items-baseline border-b border-brand-gold/20 pb-2 mb-3">
               <h3 className="font-serif text-sm font-bold text-brand-cinnamon flex items-center gap-1.5">
                 <Edit3 size={12} />
@@ -237,8 +237,7 @@ export default function Planner() {
             <textarea
               value={noteContent}
               onChange={handleNoteChange}
-              rows="4"
-              className="w-full bg-transparent border-0 font-sans text-xs text-brand-text-dark resize-none focus:outline-none focus:ring-0 leading-relaxed italic placeholder-brand-text-muted/50"
+              className="w-full flex-1 bg-transparent border-0 font-sans text-xs text-brand-text-dark resize-none focus:outline-none focus:ring-0 leading-relaxed italic placeholder-brand-text-muted/50 mt-1 min-h-[120px]"
               placeholder="Jot down notes, comforting quotes, or sudden recipe inspirations..."
             />
           </div>
@@ -317,11 +316,11 @@ export default function Planner() {
             placeholder="Add a new habit to track..."
             value={newHabitName}
             onChange={(e) => setNewHabitName(e.target.value)}
-            className="flex-1 px-3 py-2 border border-brand-bg-beige rounded bg-brand-bg-warm/30 focus:bg-white focus:outline-none"
+            className="flex-1 px-3 py-1.5 border border-brand-bg-beige rounded-brand-sm bg-brand-bg-warm/30 focus:bg-white focus:outline-none"
           />
           <button 
             type="submit"
-            className="bg-brand-olive text-brand-bg-warm px-4 py-2 rounded font-semibold hover:bg-brand-sage transition-all cursor-pointer"
+            className="bg-brand-olive text-brand-bg-warm px-4 py-1.5 rounded-brand-sm font-sans font-semibold hover:bg-brand-sage transition-all cursor-pointer text-xs"
           >
             Add Habit
           </button>
