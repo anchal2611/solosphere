@@ -9,7 +9,8 @@ import {
   Edit3, 
   Bell,
   Heart,
-  Save
+  Save,
+  X
 } from 'lucide-react';
 
 export default function Planner() {
