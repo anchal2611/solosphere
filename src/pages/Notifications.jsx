@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 
 export default function Notifications() {
-  const { notifications, clearNotifications } = useContext(AppContext);
+  const { notifications, clearNotifications, markNotificationAsRead, deleteNotification } = useContext(AppContext);
 
   // Group notifications
   const groups = ['Today', 'Yesterday', 'Earlier'];
@@ -92,13 +92,35 @@ export default function Notifications() {
                         {getIcon(notif.type)}
                       </div>
 
-                      <div className="flex-1 space-y-1">
-                        <p className="font-sans text-xs text-brand-text-dark font-medium leading-relaxed">
-                          {notif.text}
-                        </p>
-                        <div className="flex items-center gap-1 text-[10px] text-brand-text-muted font-sans">
-                          <Clock size={10} />
-                          <span>{notif.time}</span>
+                       <div className="flex-1 flex justify-between items-start gap-4">
+                        <div className="space-y-1 min-w-0">
+                          <p className={`font-sans text-xs leading-relaxed ${notif.read ? 'text-brand-text-muted opacity-60 line-through' : 'text-brand-text-dark font-medium'}`}>
+                            {notif.text}
+                          </p>
+                          <div className="flex items-center gap-1 text-[10px] text-brand-text-muted font-sans">
+                            <Clock size={10} />
+                            <span>{notif.time}</span>
+                            {notif.read && <span className="text-brand-olive font-semibold ml-1.5">• Read</span>}
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 shrink-0">
+                          {!notif.read && (
+                            <button
+                              onClick={() => markNotificationAsRead(notif.id)}
+                              className="text-[10px] font-sans font-semibold text-brand-olive hover:text-brand-sage bg-brand-olive/5 hover:bg-brand-olive/10 px-2 py-1 rounded transition-all cursor-pointer"
+                              title="Mark as read"
+                            >
+                              Mark as Read
+                            </button>
+                          )}
+                          <button
+                            onClick={() => deleteNotification(notif.id)}
+                            className="text-brand-text-muted hover:text-brand-terracotta p-1 hover:bg-brand-bg-warm rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer duration-200"
+                            title="Delete notification"
+                          >
+                            <Trash2 size={12} />
+                          </button>
                         </div>
                       </div>
                     </div>

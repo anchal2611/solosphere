@@ -302,16 +302,33 @@ export const AppProvider = ({ children }) => {
       ]));
       setExpenses(getInitialData('solosphere_expenses', []));
       setPlanner(getInitialData('solosphere_planner', {
-        notes: '',
-        habits: [
-          { name: 'Water Plants', done: [false, false, false, false, false, false, false] },
-          { name: 'Evening Tea', done: [false, false, false, false, false, false, false] },
-          { name: 'Read a Chapter', done: [false, false, false, false, false, false, false] }
-        ],
         tasks: [
-          { id: '1', text: 'Repot the monstera cutting', completed: false, category: 'plants' },
-          { id: '2', text: 'Organize pantry spices', completed: true, category: 'kitchen' },
-          { id: '3', text: 'Write in evening journal', completed: false, category: 'mind' }
+          { id: 't1', text: 'Water the monstera and fiddle leaf fig', completed: true },
+          { id: 't2', text: 'Prepare sourdough starter for baking', completed: false },
+          { id: 't3', text: 'Tidy up the cozy reading nook', completed: false },
+          { id: 't4', text: 'Go for a peaceful 20-minute evening walk', completed: true },
+          { id: 't5', text: 'Write down 3 things I am grateful for today', completed: false }
+        ],
+        weekly: {
+          Mon: 'Buy fresh flowers & groceries',
+          Tue: 'Clean kitchen space & wash linen',
+          Wed: 'Cozy movie night & chamomile tea',
+          Thu: 'Read 3 chapters of my novel',
+          Fri: 'Try a new soup recipe',
+          Sat: 'Visit the local pottery studio',
+          Sun: 'Meal prep and journal time'
+        },
+        goals: [
+          'Read 2 books this month',
+          'Maintain an 8-day wellness habit streak',
+          'Keep weekly cafe spend under ₹2000'
+        ],
+        notes: 'Remember: Living alone is a gift of time and space. Take it slow, decorate with things that tell a story, and cook meals that feel like a warm hug.',
+        habits: [
+          { id: 'h1', name: 'Morning Journaling', history: { Mon: true, Tue: true, Wed: false, Thu: true, Fri: true, Sat: true, Sun: false } },
+          { id: 'h2', name: '15m Stretching', history: { Mon: true, Tue: false, Wed: true, Thu: true, Fri: false, Sat: true, Sun: true } },
+          { id: 'h3', name: 'No Screens After 10 PM', history: { Mon: false, Tue: true, Wed: true, Thu: false, Fri: true, Sat: false, Sun: true } },
+          { id: 'h4', name: 'Water Intake (2L)', history: { Mon: true, Tue: true, Wed: true, Thu: true, Fri: true, Sat: false, Sun: false } }
         ]
       }));
       setNotifications(getInitialData('solosphere_notifications', [
@@ -558,6 +575,14 @@ export const AppProvider = ({ children }) => {
     setNotifications([]);
   };
 
+  const markNotificationAsRead = (id) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  };
+
+  const deleteNotification = (id) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
   return (
     <AppContext.Provider value={{
       profile,
@@ -581,7 +606,9 @@ export const AppProvider = ({ children }) => {
       updateNotes,
       toggleHabitDay,
       addNotification,
-      clearNotifications
+      clearNotifications,
+      markNotificationAsRead,
+      deleteNotification
     }}>
       {children}
     </AppContext.Provider>
