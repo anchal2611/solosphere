@@ -26,8 +26,11 @@ export const AppProvider = ({ children }) => {
     monthlyBudget: 1200,
     wellnessGoal: 'To cultivate daily mindfulness and appreciate the quiet moments.',
     streak: 8,
-    savedRecipes: [1, 3],
-    likedBlogs: []
+    savedRecipes: ['2', '4'],
+    likedBlogs: [],
+    coffeeLimit: 2,
+    wakeTime: '07:30',
+    quietHour: '21:00'
   }));
 
   // 2. Expense Categories State
@@ -291,8 +294,11 @@ export const AppProvider = ({ children }) => {
         monthlyBudget: 1200,
         wellnessGoal: 'To cultivate daily mindfulness and appreciate the quiet moments.',
         streak: 8,
-        savedRecipes: [1, 3],
-        likedBlogs: []
+        savedRecipes: ['2', '4'],
+        likedBlogs: [],
+        coffeeLimit: 2,
+        wakeTime: '07:30',
+        quietHour: '21:00'
       }));
       setCategories(getInitialData('solosphere_categories', [
         { id: 1, name: 'Groceries', limit: 400, spent: 0, color: '#8FBC8F' },
@@ -429,6 +435,44 @@ export const AppProvider = ({ children }) => {
     };
     fetchRandomRecipes();
   }, []);
+
+  useEffect(() => {
+    const fetchMissingSavedRecipes = async () => {
+      if (!profile || !profile.savedRecipes) return;
+      const missingIds = profile.savedRecipes.filter(
+        id => !recipes.some(r => String(r.id) === String(id))
+      );
+
+      if (missingIds.length === 0) return;
+
+      try {
+        const fetchedRecipes = await Promise.all(
+          missingIds.map(async (id) => {
+            const res = await fetch(`/api/detail?id=${id}`);
+            if (res.ok) {
+              return await res.json();
+            }
+            return null;
+          })
+        );
+
+        const validFetched = fetchedRecipes.filter(r => r !== null);
+        if (validFetched.length > 0) {
+          setRecipes(prev => {
+            const existingIds = new Set(prev.map(r => String(r.id)));
+            const newRecipes = validFetched.filter(r => !existingIds.has(String(r.id)));
+            return [...prev, ...newRecipes];
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching missing saved recipes:", err);
+      }
+    };
+
+    if (recipes.length > 0) {
+      fetchMissingSavedRecipes();
+    }
+  }, [profile.savedRecipes, recipes.length]);
 
   // Operations
   const addExpense = (expense) => {

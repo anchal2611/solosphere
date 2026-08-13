@@ -30,9 +30,9 @@ export default function Profile() {
   const [userGoal, setUserGoal] = useState(profile.wellnessGoal);
   
   // Custom companion preferences
-  const [coffeeLimit, setCoffeeLimit] = useState(2);
-  const [wakeTime, setWakeTime] = useState('07:30');
-  const [quietHour, setQuietHour] = useState('21:00');
+  const [coffeeLimit, setCoffeeLimit] = useState(profile.coffeeLimit !== undefined ? profile.coffeeLimit : 2);
+  const [wakeTime, setWakeTime] = useState(profile.wakeTime || '07:30');
+  const [quietHour, setQuietHour] = useState(profile.quietHour || '21:00');
 
   const [saveStatus, setSaveStatus] = useState('Saved');
   const avatarOptions = [
@@ -43,7 +43,23 @@ export default function Profile() {
 
   // 1. Math calculations
   const totalSpent = expenses.reduce((acc, curr) => acc + curr.amount, 0);
-  const savedRecipesList = recipes.filter(r => profile.savedRecipes.includes(r.id));
+  const savedRecipesList = recipes.filter(r => profile.savedRecipes.map(String).includes(String(r.id)));
+
+  // Auto-save helper functions for companion settings
+  const handleCoffeeLimitChange = (val) => {
+    setCoffeeLimit(val);
+    setProfile(prev => ({ ...prev, coffeeLimit: val }));
+  };
+
+  const handleWakeTimeChange = (val) => {
+    setWakeTime(val);
+    setProfile(prev => ({ ...prev, wakeTime: val }));
+  };
+
+  const handleQuietHourChange = (val) => {
+    setQuietHour(val);
+    setProfile(prev => ({ ...prev, quietHour: val }));
+  };
 
   // Save changes
   const handleSaveProfile = (e) => {
@@ -56,7 +72,10 @@ export default function Profile() {
         name: userName,
         avatar: userAvatar,
         monthlyBudget: parseFloat(userBudget),
-        wellnessGoal: userGoal
+        wellnessGoal: userGoal,
+        coffeeLimit: coffeeLimit,
+        wakeTime: wakeTime,
+        quietHour: quietHour
       }));
       setSaveStatus('Saved');
     }, 600);
@@ -170,7 +189,7 @@ export default function Profile() {
                   min="1"
                   max="6"
                   value={coffeeLimit}
-                  onChange={(e) => setCoffeeLimit(parseInt(e.target.value))}
+                  onChange={(e) => handleCoffeeLimitChange(parseInt(e.target.value))}
                   className="w-full accent-brand-terracotta cursor-pointer"
                 />
               </div>
@@ -184,7 +203,7 @@ export default function Profile() {
                 <input 
                   type="time"
                   value={wakeTime}
-                  onChange={(e) => setWakeTime(e.target.value)}
+                  onChange={(e) => handleWakeTimeChange(e.target.value)}
                   className="px-2 py-1 rounded-brand border border-brand-bg-beige bg-brand-bg-warm/40 text-brand-text-dark text-xs focus:outline-none cursor-pointer"
                 />
               </div>
@@ -198,7 +217,7 @@ export default function Profile() {
                 <input 
                   type="time"
                   value={quietHour}
-                  onChange={(e) => setQuietHour(e.target.value)}
+                  onChange={(e) => handleQuietHourChange(e.target.value)}
                   className="px-2 py-1 rounded-brand border border-brand-bg-beige bg-brand-bg-warm/40 text-brand-text-dark text-xs focus:outline-none cursor-pointer"
                 />
               </div>

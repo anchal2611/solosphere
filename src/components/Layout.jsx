@@ -50,16 +50,36 @@ export default function Layout() {
     navigate("/signin");
   };
 
-  // Time-of-day greeting & icon setup ( Lucide icons, no emojis)
-  const hour = new Date().getHours();
+  // Time-of-day greeting & icon setup ( Lucide icons, no emojis) aligned with IST timezone
+  const getISTHour = () => {
+    try {
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Kolkata',
+        hour: 'numeric',
+        hour12: false
+      });
+      return parseInt(formatter.format(new Date()), 10);
+    } catch (e) {
+      return new Date().getHours();
+    }
+  };
+
+  const hour = getISTHour();
   let timeGreeting = 'Good Evening';
   let GreetingIcon = Moon;
-  if (hour < 12) {
+
+  if (hour >= 5 && hour < 12) {
     timeGreeting = 'Good Morning';
     GreetingIcon = Coffee;
-  } else if (hour < 18) {
+  } else if (hour >= 12 && hour < 17) {
     timeGreeting = 'Good Afternoon';
     GreetingIcon = Sun;
+  } else if (hour >= 17 && hour < 22) {
+    timeGreeting = 'Good Evening';
+    GreetingIcon = Moon;
+  } else {
+    timeGreeting = 'Good Night';
+    GreetingIcon = Moon;
   }
 
   return (
