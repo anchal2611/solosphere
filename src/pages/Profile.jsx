@@ -64,21 +64,19 @@ export default function Profile() {
   // Save changes
   const handleSaveProfile = (e) => {
     e.preventDefault();
-    setSaveStatus('Saving...');
-    
-    setTimeout(() => {
-      setProfile(prev => ({
-        ...prev,
-        name: userName,
-        avatar: userAvatar,
-        monthlyBudget: parseFloat(userBudget),
-        wellnessGoal: userGoal,
-        coffeeLimit: coffeeLimit,
-        wakeTime: wakeTime,
-        quietHour: quietHour
-      }));
-      setSaveStatus('Saved');
-    }, 600);
+
+    setProfile(prev => ({
+      ...prev,
+      name: userName,
+      avatar: userAvatar,
+      monthlyBudget: Number(userBudget),
+      wellnessGoal: userGoal,
+      coffeeLimit: coffeeLimit,
+      wakeTime: wakeTime,
+      quietHour: quietHour
+    }));
+
+    setSaveStatus('Saved');
   };
 
   const handleRecipeClick = (id) => {

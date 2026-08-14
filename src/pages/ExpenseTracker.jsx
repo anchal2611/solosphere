@@ -36,18 +36,24 @@ export default function ExpenseTracker() {
 
   // Form states for Category Management
   const [newCatName, setNewCatName] = useState('');
-  const [newCatColor, setNewCatColor] = useState('#C85A32');
   const [newCatLimit, setNewCatLimit] = useState(200);
 
   // 1. Math calculations
   const totalSpent = expenses.reduce((acc, curr) => acc + curr.amount, 0);
-  const budgetRemaining = profile.monthlyBudget - totalSpent;
+
+  const totalMonthlyBudget = categories.reduce(
+    (total, category) => total + Number(category.limit || 0),
+    0
+  );
+
+  const budgetRemaining = totalMonthlyBudget - totalSpent;
 
   // 2. Spending by category for Donut Chart
   const categoryTotals = categories.map(cat => {
     const total = expenses
       .filter(exp => exp.category.toLowerCase() === cat.name.toLowerCase())
       .reduce((sum, curr) => sum + curr.amount, 0);
+
     return {
       ...cat,
       total
@@ -60,55 +66,103 @@ export default function ExpenseTracker() {
 
   // SVG Donut Calculations
   const radius = 50;
-  const circumference = 2 * Math.PI * radius; // ~314.16
+  const circumference = 2 * Math.PI * radius;
   let accumulatedPercent = 0;
 
+  let accumulatedLength = 0;
+
   const donutSegments = activeSpendCategories.map((cat) => {
-    const percentage = totalActiveSpend > 0 ? (cat.total / totalActiveSpend) * 100 : 0;
+    const percentage =
+      totalActiveSpend > 0
+        ? (cat.total / totalActiveSpend) * 100
+        : 0;
+
     const strokeLength = (percentage / 100) * circumference;
-    const strokeOffset = circumference - strokeLength + (accumulatedPercent / 100) * circumference;
-    accumulatedPercent += percentage;
-    return {
+
+    const segment = {
       ...cat,
       percentage,
       strokeLength,
-      strokeOffset
+      strokeOffset: -accumulatedLength
     };
+
+    accumulatedLength += strokeLength;
+
+    return segment;
   });
 
+  // Available category colors
+  const categoryColors = [
+    '#C85A32',
+    '#D4A373',
+    '#606C38',
+    '#8C4F2B',
+    '#8B7D74',
+    '#70A0AF',
+    '#A892EE'
+  ];
+
+  // Automatically get the next unused color
+  const getNextCategoryColor = () => {
+    const usedColors = categories.map(cat => cat.color?.toLowerCase());
+
+    return categoryColors.find(
+      color => !usedColors.includes(color.toLowerCase())
+    );
+  };
+
   // Handle Add Expense Submit
-  const handleAddExpenseSubmit = (e) => {
+  const handleAddExpenseSubmit = async (e) => {
     e.preventDefault();
-    if (!description || !amount) return;
 
-    addExpense({
-      amount: parseFloat(amount),
-      description,
-      category: categoryName
-    });
+    if (!description || !amount || !categoryName) return;
 
-    // Reset Form
-    setDescription('');
-    setAmount('');
-    if (categories.length > 0) {
-      setCategoryName(categories[0].name);
+    try {
+      await addExpense({
+        amount: parseFloat(amount),
+        description,
+        category: categoryName,
+        date: new Date().toISOString()
+      });
+
+      setDescription('');
+      setAmount('');
+
+      if (categories.length > 0) {
+        setCategoryName(categories[0].name);
+      }
+
+      setAddModalOpen(false);
+    } catch (error) {
+      alert("Could not add expense. Please try again.");
     }
-    setAddModalOpen(false);
   };
 
   // Handle Add Category Submit
-  const handleAddCategorySubmit = (e) => {
+  const handleAddCategorySubmit = async (e) => {
     e.preventDefault();
+
     if (!newCatName) return;
 
-    addCategory({
-      name: newCatName,
-      color: newCatColor,
-      limit: parseInt(newCatLimit)
-    });
+    const nextColor = getNextCategoryColor();
 
-    setNewCatName('');
-    setNewCatLimit(200);
+    if (!nextColor) {
+      alert("All available category colors are already in use.");
+      return;
+    }
+
+    try {
+      await addCategory({
+        name: newCatName,
+        color: nextColor,
+        limit: parseInt(newCatLimit)
+      });
+
+      setNewCatName('');
+      setNewCatLimit(200);
+    } catch (error) {
+      alert("Could not create category. Please try again.");
+    }
   };
 
   return (
@@ -135,6 +189,7 @@ export default function ExpenseTracker() {
           >
             Spending Logs
           </button>
+
           <button
             onClick={() => setActiveSubTab('categories')}
             className={`px-4 py-2 rounded-brand font-medium transition-all duration-300 ${
@@ -150,14 +205,20 @@ export default function ExpenseTracker() {
 
       {/* SUMMARY CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
         {/* Spent */}
         <div className="bg-white p-6 rounded-brand shadow-sm border border-brand-bg-beige flex items-center gap-4 hover:shadow-md transition-shadow duration-300">
           <div className="p-3 bg-brand-terracotta/10 text-brand-terracotta rounded-full">
             <TrendingDown size={20} />
           </div>
+
           <div className="space-y-1">
-            <span className="font-sans text-xxs uppercase tracking-wider text-brand-text-muted">Spent This Month</span>
-            <p className="font-serif text-2xl font-bold text-brand-text-dark">₹{totalSpent.toFixed(2)}</p>
+            <span className="font-sans text-xxs uppercase tracking-wider text-brand-text-muted">
+              Spent This Month
+            </span>
+            <p className="font-serif text-2xl font-bold text-brand-text-dark">
+              ₹{totalSpent.toFixed(2)}
+            </p>
           </div>
         </div>
 
@@ -166,9 +227,14 @@ export default function ExpenseTracker() {
           <div className="p-3 bg-brand-gold/10 text-brand-gold rounded-full">
             <PiggyBank size={20} />
           </div>
+
           <div className="space-y-1">
-            <span className="font-sans text-xxs uppercase tracking-wider text-brand-text-muted">Total Monthly Allowance</span>
-            <p className="font-serif text-2xl font-bold text-brand-text-dark">₹{profile.monthlyBudget.toFixed(2)}</p>
+            <span className="font-sans text-xxs uppercase tracking-wider text-brand-text-muted">
+              Total Monthly Allowance
+            </span>
+            <p className="font-serif text-2xl font-bold text-brand-text-dark">
+              ₹{totalMonthlyBudget.toFixed(2)}
+            </p>
           </div>
         </div>
 
@@ -177,9 +243,16 @@ export default function ExpenseTracker() {
           <div className="p-3 bg-brand-olive/10 text-brand-olive rounded-full">
             <DollarSign size={20} />
           </div>
+
           <div className="space-y-1">
-            <span className="font-sans text-xxs uppercase tracking-wider text-brand-text-muted">Remaining Balance</span>
-            <p className={`font-serif text-2xl font-bold ${budgetRemaining < 0 ? 'text-brand-terracotta' : 'text-brand-olive'}`}>
+            <span className="font-sans text-xxs uppercase tracking-wider text-brand-text-muted">
+              Remaining Balance
+            </span>
+            <p className={`font-serif text-2xl font-bold ${
+              budgetRemaining < 0 
+                ? 'text-brand-terracotta' 
+                : 'text-brand-olive'
+            }`}>
               ₹{budgetRemaining.toFixed(2)}
             </p>
           </div>
@@ -189,19 +262,36 @@ export default function ExpenseTracker() {
       {activeSubTab === 'list' ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* Donut Chart (Placeholder Area and details) */}
+          {/* Donut Chart */}
           <div className="bg-white p-6 rounded-brand shadow-sm border border-brand-bg-beige space-y-6 flex flex-col justify-between hover:shadow-md transition-shadow duration-300">
             <div className="space-y-2">
-              <h3 className="font-serif text-lg font-bold text-brand-text-dark">Category Distribution</h3>
-              <p className="font-sans text-xs text-brand-text-muted">Visualizing where your monthly allowance flows.</p>
+              <h3 className="font-serif text-lg font-bold text-brand-text-dark">
+                Category Distribution
+              </h3>
+              <p className="font-sans text-xs text-brand-text-muted">
+                Visualizing where your monthly allowance flows.
+              </p>
             </div>
 
             {/* SVG Interactive Donut Chart */}
             <div className="relative flex justify-center items-center py-4">
               {totalActiveSpend > 0 ? (
                 <>
-                  <svg width="180" height="180" viewBox="0 0 140 140" className="transform -rotate-90">
-                    <circle cx="70" cy="70" r={radius} fill="transparent" stroke="#FAF7F2" strokeWidth="12" />
+                  <svg
+                    width="180"
+                    height="180"
+                    viewBox="0 0 140 140"
+                    className="transform -rotate-90"
+                  >
+                    <circle
+                      cx="70"
+                      cy="70"
+                      r={radius}
+                      fill="transparent"
+                      stroke="#FAF7F2"
+                      strokeWidth="12"
+                    />
+
                     {donutSegments.map((segment, idx) => (
                       <circle
                         key={idx}
@@ -218,16 +308,26 @@ export default function ExpenseTracker() {
                       />
                     ))}
                   </svg>
+
                   {/* Center Text */}
                   <div className="absolute inset-0 flex flex-col justify-center items-center pointer-events-none">
-                    <span className="text-xxs text-brand-text-muted uppercase tracking-wider">Total</span>
-                    <span className="font-serif text-lg font-bold">₹{totalActiveSpend.toFixed(0)}</span>
+                    <span className="text-xxs text-brand-text-muted uppercase tracking-wider">
+                      Total
+                    </span>
+                    <span className="font-serif text-lg font-bold">
+                      ₹{totalActiveSpend.toFixed(0)}
+                    </span>
                   </div>
                 </>
               ) : (
                 <div className="h-44 flex flex-col justify-center items-center border border-dashed border-brand-bg-beige rounded-brand w-full bg-brand-bg-warm/30">
-                  <DollarSign size={32} className="text-brand-text-muted opacity-40 mb-2" />
-                  <p className="text-xxs text-brand-text-muted font-sans text-center">No transactions registered yet.</p>
+                  <DollarSign
+                    size={32}
+                    className="text-brand-text-muted opacity-40 mb-2"
+                  />
+                  <p className="text-xxs text-brand-text-muted font-sans text-center">
+                    No transactions registered yet.
+                  </p>
                 </div>
               )}
             </div>
@@ -235,13 +335,26 @@ export default function ExpenseTracker() {
             {/* Legends List */}
             <div className="space-y-2 pt-4 border-t border-brand-text-muted/10">
               {categoryTotals.map(cat => {
-                const percent = totalActiveSpend > 0 ? ((cat.total / totalActiveSpend) * 100).toFixed(0) : 0;
+                const percent = totalActiveSpend > 0
+                  ? ((cat.total / totalActiveSpend) * 100).toFixed(0)
+                  : 0;
+
                 return (
-                  <div key={cat.id} className="flex justify-between items-center text-xs">
+                  <div
+                    key={cat.id}
+                    className="flex justify-between items-center text-xs"
+                  >
                     <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: cat.color }}></span>
-                      <span className="font-sans text-brand-text-dark font-medium">{cat.name}</span>
+                      <span
+                        className="w-2.5 h-2.5 rounded-full shrink-0"
+                        style={{ backgroundColor: cat.color }}
+                      ></span>
+
+                      <span className="font-sans text-brand-text-dark font-medium">
+                        {cat.name}
+                      </span>
                     </div>
+
                     <span className="font-sans text-brand-text-muted">
                       ₹{cat.total.toFixed(2)} ({percent}%)
                     </span>
@@ -249,20 +362,27 @@ export default function ExpenseTracker() {
                 );
               })}
             </div>
-
           </div>
 
           {/* Transactions List */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex justify-between items-center px-2">
-              <h3 className="font-serif text-lg font-bold text-brand-text-dark">Journal Entries</h3>
-              <span className="text-xxs text-brand-text-muted font-sans">{expenses.length} transaction entries</span>
+              <h3 className="font-serif text-lg font-bold text-brand-text-dark">
+                Journal Entries
+              </h3>
+
+              <span className="text-xxs text-brand-text-muted font-sans">
+                {expenses.length} transaction entries
+              </span>
             </div>
 
             {expenses.length > 0 ? (
               <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
                 {expenses.map((expense) => {
-                  const cat = categories.find(c => c.name.toLowerCase() === expense.category.toLowerCase()) || { color: '#8B7D74' };
+                  const cat = categories.find(
+                    c => c.name.toLowerCase() === expense.category.toLowerCase()
+                  ) || { color: '#8B7D74' };
+
                   return (
                     <div 
                       key={expense.id} 
@@ -270,17 +390,26 @@ export default function ExpenseTracker() {
                     >
                       <div className="flex items-center gap-4 min-w-0">
                         {/* Category Color Bar */}
-                        <div className="w-1.5 h-10 rounded-full shrink-0" style={{ backgroundColor: cat.color }}></div>
+                        <div
+                          className="w-1.5 h-10 rounded-full shrink-0"
+                          style={{ backgroundColor: cat.color }}
+                        ></div>
                         
                         <div className="min-w-0 space-y-1">
                           <p className="font-sans font-semibold text-brand-text-dark truncate text-sm">
                             {expense.description}
                           </p>
+
                           <div className="flex items-center gap-2 text-xxs text-brand-text-muted font-sans flex-wrap">
-                            <span className="px-2 py-0.5 rounded-full bg-brand-bg-warm font-medium" style={{ color: cat.color }}>
+                            <span
+                              className="px-2 py-0.5 rounded-full bg-brand-bg-warm font-medium"
+                              style={{ color: cat.color }}
+                            >
                               {expense.category}
                             </span>
+
                             <span>•</span>
+
                             <span className="flex items-center gap-1">
                               <Calendar size={10} />
                               {expense.date}
@@ -293,6 +422,7 @@ export default function ExpenseTracker() {
                         <span className="font-serif font-bold text-base text-brand-text-dark">
                           -₹{expense.amount.toFixed(2)}
                         </span>
+
                         <button 
                           onClick={() => deleteExpense(expense.id)}
                           className="p-1.5 text-brand-text-muted hover:text-brand-terracotta hover:bg-brand-bg-warm rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"
@@ -307,12 +437,15 @@ export default function ExpenseTracker() {
               </div>
             ) : (
               <div className="h-64 flex flex-col justify-center items-center border border-dashed border-brand-bg-beige rounded-brand bg-white">
-                <p className="text-sm text-brand-text-muted font-sans">No spending logs recorded yet.</p>
-                <p className="text-xxs text-brand-text-muted font-sans mt-1">Tap the plus button to record your first expense.</p>
+                <p className="text-sm text-brand-text-muted font-sans">
+                  No spending logs recorded yet.
+                </p>
+                <p className="text-xxs text-brand-text-muted font-sans mt-1">
+                  Tap the plus button to record your first expense.
+                </p>
               </div>
             )}
           </div>
-
         </div>
       ) : (
         /* CATEGORY MANAGEMENT SECTION */
@@ -320,12 +453,23 @@ export default function ExpenseTracker() {
           
           {/* Add Category Form */}
           <div className="bg-white p-6 rounded-brand shadow-sm border border-brand-bg-beige space-y-4 hover:shadow-md transition-shadow duration-300">
-            <h3 className="font-serif text-lg font-bold text-brand-text-dark">Add New Category</h3>
-            <p className="font-sans text-xs text-brand-text-muted mb-4">Define a new category with a customized spending limit.</p>
+            <h3 className="font-serif text-lg font-bold text-brand-text-dark">
+              Add New Category
+            </h3>
+
+            <p className="font-sans text-xs text-brand-text-muted mb-4">
+              Define a new category with a customized spending limit.
+            </p>
             
-            <form onSubmit={handleAddCategorySubmit} className="space-y-4 font-sans text-xs">
+            <form
+              onSubmit={handleAddCategorySubmit}
+              className="space-y-4 font-sans text-xs"
+            >
               <div className="space-y-1">
-                <label className="block text-brand-text-muted font-semibold">Category Name</label>
+                <label className="block text-brand-text-muted font-semibold">
+                  Category Name
+                </label>
+
                 <input 
                   type="text"
                   required
@@ -336,31 +480,13 @@ export default function ExpenseTracker() {
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="block text-brand-text-muted font-semibold">Category Theme Color</label>
-                <div className="flex gap-2.5 items-center flex-wrap py-2">
-                  {['#C85A32', '#D4A373', '#606C38', '#8C4F2B', '#8B7D74', '#70A0AF', '#A892EE'].map(color => (
-                    <button
-                      key={color}
-                      type="button"
-                      onClick={() => setNewCatColor(color)}
-                      className={`w-6 h-6 rounded-full border-2 transition-all shrink-0 ${
-                        newCatColor === color ? 'border-brand-text-dark scale-110 shadow-sm' : 'border-transparent'
-                      }`}
-                      style={{ backgroundColor: color }}
-                    ></button>
-                  ))}
-                  <input 
-                    type="color"
-                    value={newCatColor}
-                    onChange={(e) => setNewCatColor(e.target.value)}
-                    className="w-6 h-6 rounded-full border-0 p-0 overflow-hidden cursor-pointer"
-                  />
-                </div>
-              </div>
+              {/* Color is automatically assigned */}
 
               <div className="space-y-1">
-                <label className="block text-brand-text-muted font-semibold">Monthly Allowance Limit (₹)</label>
+                <label className="block text-brand-text-muted font-semibold">
+                  Monthly Allowance Limit (₹)
+                </label>
+
                 <input 
                   type="number"
                   required
@@ -384,14 +510,22 @@ export default function ExpenseTracker() {
 
           {/* Categories Grid List */}
           <div className="lg:col-span-2 space-y-4">
-            <h3 className="font-serif text-lg font-bold text-brand-text-dark px-2">Allowance Limits</h3>
+            <h3 className="font-serif text-lg font-bold text-brand-text-dark px-2">
+              Allowance Limits
+            </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {categories.map((cat) => {
                 const total = expenses
-                  .filter(exp => exp.category.toLowerCase() === cat.name.toLowerCase())
+                  .filter(
+                    exp => exp.category.toLowerCase() === cat.name.toLowerCase()
+                  )
                   .reduce((sum, curr) => sum + curr.amount, 0);
-                const percent = Math.min(Math.round((total / cat.limit) * 100), 100);
+
+                const percent = Math.min(
+                  Math.round((total / cat.limit) * 100),
+                  100
+                );
                 
                 return (
                   <div 
@@ -409,8 +543,14 @@ export default function ExpenseTracker() {
 
                     <div className="space-y-3">
                       <div className="flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: cat.color }}></span>
-                        <h4 className="font-serif font-bold text-base text-brand-text-dark">{cat.name}</h4>
+                        <span
+                          className="w-3 h-3 rounded-full shrink-0"
+                          style={{ backgroundColor: cat.color }}
+                        ></span>
+
+                        <h4 className="font-serif font-bold text-base text-brand-text-dark">
+                          {cat.name}
+                        </h4>
                       </div>
 
                       <div className="space-y-1">
@@ -418,6 +558,7 @@ export default function ExpenseTracker() {
                           <span>Spent: ₹{total.toFixed(2)}</span>
                           <span>Limit: ₹{cat.limit}</span>
                         </div>
+
                         <div className="w-full bg-brand-bg-warm h-1.5 rounded-full overflow-hidden">
                           <div 
                             className="h-full rounded-full transition-all duration-500" 
@@ -427,6 +568,7 @@ export default function ExpenseTracker() {
                             }}
                           ></div>
                         </div>
+
                         <span className="block text-right font-sans text-xxs font-semibold text-brand-text-muted">
                           {percent}% consumed
                         </span>
@@ -437,7 +579,6 @@ export default function ExpenseTracker() {
               })}
             </div>
           </div>
-
         </div>
       )}
 
@@ -447,7 +588,10 @@ export default function ExpenseTracker() {
         className="fixed bottom-6 right-6 md:bottom-8 md:right-8 bg-brand-terracotta text-brand-bg-warm p-4 rounded-full shadow-lg hover:bg-brand-cinnamon active:scale-95 hover:-translate-y-0.5 transition-all duration-300 group z-30"
         title="Record Expense"
       >
-        <Plus size={24} className="group-hover:rotate-90 transition-transform duration-300" />
+        <Plus
+          size={24}
+          className="group-hover:rotate-90 transition-transform duration-300"
+        />
       </button>
 
       {/* ADD EXPENSE MODAL */}
@@ -463,13 +607,24 @@ export default function ExpenseTracker() {
             </button>
 
             <header className="space-y-1">
-              <h3 className="font-serif text-xl font-bold text-brand-text-dark">Record Spending</h3>
-              <p className="font-sans text-xxs text-brand-text-muted">Log your purchase with clean journal entries.</p>
+              <h3 className="font-serif text-xl font-bold text-brand-text-dark">
+                Record Spending
+              </h3>
+
+              <p className="font-sans text-xxs text-brand-text-muted">
+                Log your purchase with clean journal entries.
+              </p>
             </header>
 
-            <form onSubmit={handleAddExpenseSubmit} className="space-y-4 font-sans text-xs">
+            <form
+              onSubmit={handleAddExpenseSubmit}
+              className="space-y-4 font-sans text-xs"
+            >
               <div className="space-y-1">
-                <label className="block text-brand-text-muted font-semibold">Purchase Description</label>
+                <label className="block text-brand-text-muted font-semibold">
+                  Purchase Description
+                </label>
+
                 <input 
                   type="text"
                   required
@@ -482,7 +637,10 @@ export default function ExpenseTracker() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="block text-brand-text-muted font-semibold">Cost (₹)</label>
+                  <label className="block text-brand-text-muted font-semibold">
+                    Cost (₹)
+                  </label>
+
                   <input 
                     type="number"
                     step="0.01"
@@ -496,7 +654,10 @@ export default function ExpenseTracker() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-brand-text-muted font-semibold">Category</label>
+                  <label className="block text-brand-text-muted font-semibold">
+                    Category
+                  </label>
+
                   {categories.length > 0 ? (
                     <select
                       value={categoryName}
@@ -504,11 +665,15 @@ export default function ExpenseTracker() {
                       className="w-full px-4 py-2.5 rounded-brand border border-brand-bg-beige bg-white focus:outline-none focus:ring-1 focus:ring-brand-terracotta cursor-pointer"
                     >
                       {categories.map(cat => (
-                        <option key={cat.id} value={cat.name}>{cat.name}</option>
+                        <option key={cat.id} value={cat.name}>
+                          {cat.name}
+                        </option>
                       ))}
                     </select>
                   ) : (
-                    <span className="text-brand-terracotta block pt-2">No categories available!</span>
+                    <span className="text-brand-terracotta block pt-2">
+                      No categories available!
+                    </span>
                   )}
                 </div>
               </div>
@@ -522,7 +687,6 @@ export default function ExpenseTracker() {
                 Record Transaction
               </button>
             </form>
-
           </div>
         </div>
       )}
