@@ -19,6 +19,7 @@ const STOP_WORDS = new Set([
   'me', 'to', 'on', 'hand', 'of', 'any', 'leftover', 'leftovers', 'need',
   'want', 'cook', 'make', 'recipe', 'recipes', 'using', 'about', 'just'
 ]);
+const normalizeSearchText = value => String(value || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
 
 export default function Recipes() {
   const { recipes, profile, toggleRecipeSaved } = useContext(AppContext);
@@ -35,6 +36,7 @@ export default function Recipes() {
   const [isLoading, setIsLoading] = useState(false);
   const [promptResults, setPromptResults] = useState(null); 
   const [hasError, setHasError] = useState(false);
+  const [searchMode, setSearchMode] = useState('');
 
   // Parse text into ingredient keywords
   useEffect(() => {
@@ -64,7 +66,7 @@ export default function Recipes() {
     setPromptText(prev => prev.replace(regex, '').replace(/\s+/g, ' ').trim());
   };
 
-  // Submit Prompt to search (Live FastAPI + Gemini backend)
+  // Search through the recipe service, with a local catalog fallback.
   const handlePromptSearch = async (e) => {
     e.preventDefault();
     if (!promptText.trim()) return;
@@ -72,6 +74,7 @@ export default function Recipes() {
     setIsLoading(true);
     setPromptResults(null);
     setHasError(false);
+    setSearchMode('');
 
     try {
       const response = await fetch("/api/search", {
@@ -89,17 +92,40 @@ export default function Recipes() {
       const data = await response.json();
       if (data.success && Array.isArray(data.recipes)) {
         setPromptResults(data.recipes);
+        setSearchMode(data.searchMode || 'gemini');
         // Overwrite client-side keywords with Gemini's precise extraction
         if (data.preferences && Array.isArray(data.preferences.ingredients)) {
           setParsedIngredients(data.preferences.ingredients);
         }
       } else {
         setPromptResults([]);
+        setSearchMode('local');
       }
       setShowOnlySaved(false); // Clear saved filter
     } catch (error) {
       console.error("Search failed:", error);
-      setHasError(true);
+      const queryWords = promptText.toLowerCase().match(/[a-z0-9]+/g)?.filter(word => word.length > 2 && !STOP_WORDS.has(word)) || [];
+      const localResults = recipes
+        .map(recipe => {
+          const searchableText = normalizeSearchText([
+            recipe.title,
+            recipe.description,
+            recipe.cuisine,
+            recipe.course,
+            recipe.meal_type,
+            ...(recipe.ingredients || [])
+          ].filter(Boolean).join(' '));
+          const score = queryWords.reduce((total, word) => total + (searchableText.includes(word) ? 1 : 0), 0);
+          return { recipe, score };
+        })
+        .filter(result => result.score > 0)
+        .sort((left, right) => right.score - left.score)
+        .slice(0, 10)
+        .map(result => result.recipe);
+      setPromptResults(localResults);
+      setSearchMode('local-client');
+      setShowOnlySaved(false);
+      setHasError(recipes.length === 0);
     } finally {
       setIsLoading(false);
     }
@@ -136,6 +162,7 @@ export default function Recipes() {
     setPromptText('');
     setPromptResults(null);
     setHasError(false);
+    setSearchMode('');
   };
 
   return (
@@ -259,6 +286,14 @@ export default function Recipes() {
         </form>
       </section>
 
+      {promptResults !== null && (searchMode === 'local' || searchMode === 'local-client') && (
+        <p className="text-xs text-brand-text-muted" role="status">
+          {searchMode === 'local'
+            ? 'Using catalog keyword matching because AI preference extraction is unavailable.'
+            : 'The recipe service is offline. Showing matches from recipes already loaded.'}
+        </p>
+      )}
+
       {/* CATEGORY CHIPS ROW (Unified styles, Horizontal Scroll) */}
       <div className="border-b border-brand-text-muted/10 pb-3 flex flex-col md:flex-row gap-4 justify-between items-start md:items-center w-full">
         <span className="font-serif text-xl font-bold tracking-tight text-brand-text-dark select-none">
@@ -310,7 +345,7 @@ export default function Recipes() {
           <HelpCircle size={36} className="text-brand-terracotta" />
           <h4 className="font-serif text-base font-bold text-brand-text-dark text-center">API Match Error</h4>
           <p className="text-xxs text-brand-text-muted font-sans text-center leading-relaxed">
-            The matching index server failed to respond. Please review your backend MongoDB collection connectivity.
+            Recipe search is temporarily unavailable. Reconnect to the recipe service and try again.
           </p>
           <button 
             type="button" 
