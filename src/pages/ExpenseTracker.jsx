@@ -584,7 +584,7 @@ export default function ExpenseTracker() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {categories.map((cat) => {
-                const total = expenses
+                const total = monthlyExpenses
                   .filter(
                     (exp) =>
                       exp.category?.toLowerCase() ===
