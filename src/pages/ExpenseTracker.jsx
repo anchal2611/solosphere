@@ -1,5 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { AppContext } from '../context/AppContext';
+import { getCurrentMonthExpenses } from '../utils/expenses';
 import {
   Plus,
   Trash2,
@@ -15,6 +16,7 @@ export default function ExpenseTracker() {
   const {
     expenses,
     categories,
+    profile,
     addExpense,
     deleteExpense,
     addCategory,
@@ -41,21 +43,19 @@ export default function ExpenseTracker() {
   }, [categories, categoryName]);
 
   // 1. Math calculations
-  const totalSpent = expenses.reduce(
+  const monthlyExpenses = getCurrentMonthExpenses(expenses);
+  const totalSpent = monthlyExpenses.reduce(
     (acc, curr) => acc + Number(curr.amount || 0),
     0
   );
 
-  const totalMonthlyBudget = categories.reduce(
-    (total, category) => total + Number(category.limit || 0),
-    0
-  );
+  const totalMonthlyBudget = Number(profile.monthlyBudget) || 0;
 
   const budgetRemaining = totalMonthlyBudget - totalSpent;
 
   // 2. Spending by category
   const categoryTotals = categories.map((cat) => {
-    const total = expenses
+    const total = monthlyExpenses
       .filter(
         (exp) =>
           exp.category?.toLowerCase() ===

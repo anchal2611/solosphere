@@ -2,6 +2,7 @@ import React, { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppContext } from '../context/AppContext';
 import RecipeImage from '../components/RecipeImage';
+import { getCurrentMonthExpenses } from '../utils/expenses';
 import { 
   Calendar, 
   DollarSign, 
@@ -31,10 +32,7 @@ export default function Dashboard() {
   const GreetingIcon = greetingObj.icon;
 
   // 1. Calculate expense summary
-  const currentDate = new Date();
-  const dateParts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit' }).formatToParts(currentDate);
-  const currentMonth = `${dateParts.find(part => part.type === 'year').value}-${dateParts.find(part => part.type === 'month').value}`;
-  const monthlyExpenses = expenses.filter(expense => expense.date?.startsWith(currentMonth));
+  const monthlyExpenses = getCurrentMonthExpenses(expenses);
   const totalSpent = monthlyExpenses.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
   const monthlyBudget = Number(profile.monthlyBudget) || 0;
   const budgetPercent = monthlyBudget > 0 ? Math.min(Math.round((totalSpent / monthlyBudget) * 100), 100) : 0;

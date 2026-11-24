@@ -1,6 +1,7 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppContext } from '../context/AppContext';
+import { getCurrentMonthExpenses } from '../utils/expenses';
 import { 
   User, 
   Save, 
@@ -30,6 +31,10 @@ export default function Profile() {
   const [wakeTime, setWakeTime] = useState(profile.wakeTime || '07:30');
   const [quietHour, setQuietHour] = useState(profile.quietHour || '21:00');
 
+  useEffect(() => {
+    setUserBudget(profile.monthlyBudget);
+  }, [profile.monthlyBudget]);
+
   const [saveStatus, setSaveStatus] = useState('Saved');
   const avatarOptions = [
     { id: 'sun', Icon: Sun }, { id: 'leaf', Icon: Leaf }, { id: 'bread', Icon: Wheat },
@@ -38,7 +43,8 @@ export default function Profile() {
   const ActiveAvatar = avatarOptions.find(({ id }) => id === userAvatar)?.Icon || User;
 
   // 1. Math calculations
-  const totalSpent = expenses.reduce((acc, curr) => acc + curr.amount, 0);
+  const monthlyExpenses = getCurrentMonthExpenses(expenses);
+  const totalSpent = monthlyExpenses.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
   const savedRecipesList = recipes.filter(r => profile.savedRecipes.map(String).includes(String(r.id)));
   const todayKey = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', weekday: 'short' }).format(new Date());
   const completedHabitsToday = planner.habits.filter(habit => habit.history?.[todayKey]).length;
@@ -267,7 +273,7 @@ export default function Profile() {
           <div className="mt-6 border-t border-brand-text-muted/10 pt-4 space-y-3 font-sans text-xxs">
             <h4 className="font-bold text-brand-text-dark text-xxs uppercase tracking-wider">Aspirations Status</h4>
             {categories.map(cat => {
-              const spent = expenses.filter(e => e.category.toLowerCase() === cat.name.toLowerCase()).reduce((s, e) => s + e.amount, 0);
+              const spent = monthlyExpenses.filter(e => e.category?.toLowerCase() === cat.name.toLowerCase()).reduce((s, e) => s + Number(e.amount || 0), 0);
               const warning = spent > cat.limit * 0.85;
               return (
                 <div key={cat.id} className="flex justify-between items-center">
