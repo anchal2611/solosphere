@@ -7,7 +7,9 @@ export default function Blog() {
   const [selectedPost, setSelectedPost] = useState(null);
 
   const featuredPost = blogPosts.find(post => post.featured) || blogPosts[0];
-  const gridPosts = blogPosts.filter(post => post.id !== featuredPost.id);
+  const gridPosts = blogPosts
+    .filter(post => post.id !== featuredPost.id)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const isPostLiked = (postId) => (profile.likedBlogs || []).map(String).includes(String(postId));
 

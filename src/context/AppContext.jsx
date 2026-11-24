@@ -6,7 +6,7 @@ import React, {
 } from "react";
 
 import { useAuth } from "./AuthContext";
-import { BLOG_POSTS } from "../data/blogPosts";
+import { BLOG_POSTS, mergeBlogPosts } from "../data/blogPosts";
 
 import { db } from "../firebase/firebase";
 
@@ -234,7 +234,7 @@ export const AppProvider = ({ children }) => {
           } else {
             setNotifications(DEFAULT_NOTIFICATIONS);
           }
-          setBlogPosts(Array.isArray(data.blogPosts) && data.blogPosts.length > 0 ? data.blogPosts : BLOG_POSTS);
+          setBlogPosts(mergeBlogPosts(data.blogPosts));
         }
 
 
