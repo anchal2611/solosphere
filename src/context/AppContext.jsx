@@ -33,385 +33,70 @@ const DEFAULT_PROFILE = {
   name: "",
   email: "",
   avatar: "default",
-  monthlyBudget: 1200,
-  wellnessGoal:
-    "To cultivate daily mindfulness and appreciate the quiet moments.",
-  streak: 8,
-  savedRecipes: ["2", "4"],
+  monthlyBudget: 0,
+  wellnessGoal: "",
+  savedRecipes: [],
   likedBlogs: [],
   coffeeLimit: 2,
   wakeTime: "07:30",
   quietHour: "21:00"
 };
 
-
-const DEFAULT_CATEGORIES = [
-  {
-    name: "Groceries",
-    color: "#C85A32",
-    limit: 400
-  },
-  {
-    name: "Cozy Cafe",
-    color: "#D4A373",
-    limit: 300
-  },
-  {
-    name: "Home Decor",
-    color: "#606C38",
-    limit: 500
-  },
-  {
-    name: "Self Care",
-    color: "#8C4F2B",
-    limit: 300
-  },
-  {
-    name: "Leisure",
-    color: "#8B7D74",
-    limit: 300
-  }
-];
-
-
 const DEFAULT_PLANNER = {
-  tasks: [
-    {
-      id: "t1",
-      text: "Water the monstera and fiddle leaf fig",
-      completed: true
-    },
-    {
-      id: "t2",
-      text: "Prepare sourdough starter for baking",
-      completed: false
-    },
-    {
-      id: "t3",
-      text: "Tidy up the cozy reading nook",
-      completed: false
-    },
-    {
-      id: "t4",
-      text: "Go for a peaceful 20-minute evening walk",
-      completed: true
-    },
-    {
-      id: "t5",
-      text: "Write down 3 things I am grateful for today",
-      completed: false
-    }
-  ],
+  tasks: [],
+  weekly: Object.fromEntries(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(day => [day, ""])),
+  goals: [],
+  notes: "",
+  habits: []
+};
 
-  weekly: {
-    Mon: "Buy fresh flowers & groceries",
-    Tue: "Clean kitchen space & wash linen",
-    Wed: "Cozy movie night & chamomile tea",
-    Thu: "Read 3 chapters of my novel",
-    Fri: "Try a new soup recipe",
-    Sat: "Visit the local pottery studio",
-    Sun: "Meal prep and journal time"
-  },
+const DEFAULT_NOTIFICATIONS = [];
 
-  goals: [
+const cleanPlannerData = (planner = {}) => {
+  planner ||= {};
+  const sampleTaskIds = new Set(["t1", "t2", "t3", "t4", "t5"]);
+  const sampleHabitIds = new Set(["h1", "h2", "h3", "h4"]);
+  const sampleGoals = new Set([
     "Read 2 books this month",
     "Maintain an 8-day wellness habit streak",
     "Keep weekly cafe spend under ₹2000"
-  ],
+  ]);
+  const sampleWeeklyPlans = new Set([
+    "Buy fresh flowers & groceries", "Clean kitchen space & wash linen",
+    "Cozy movie night & chamomile tea", "Read 3 chapters of my novel",
+    "Try a new soup recipe", "Visit the local pottery studio", "Meal prep and journal time"
+  ]);
+  const sampleNotes = "Remember: Living alone is a gift of time and space. Take it slow, decorate with things that tell a story, and cook meals that feel like a warm hug.";
 
-  notes:
-    "Remember: Living alone is a gift of time and space. Take it slow, decorate with things that tell a story, and cook meals that feel like a warm hug.",
-
-  habits: [
-    {
-      id: "h1",
-      name: "Morning Journaling",
-      history: {
-        Mon: true,
-        Tue: true,
-        Wed: false,
-        Thu: true,
-        Fri: true,
-        Sat: true,
-        Sun: false
-      }
-    },
-    {
-      id: "h2",
-      name: "15m Stretching",
-      history: {
-        Mon: true,
-        Tue: false,
-        Wed: true,
-        Thu: true,
-        Fri: false,
-        Sat: true,
-        Sun: true
-      }
-    },
-    {
-      id: "h3",
-      name: "No Screens After 10 PM",
-      history: {
-        Mon: false,
-        Tue: true,
-        Wed: true,
-        Thu: false,
-        Fri: true,
-        Sat: false,
-        Sun: true
-      }
-    },
-    {
-      id: "h4",
-      name: "Water Intake (2L)",
-      history: {
-        Mon: true,
-        Tue: true,
-        Wed: true,
-        Thu: true,
-        Fri: true,
-        Sat: false,
-        Sun: false
-      }
-    }
-  ]
+  return {
+    ...DEFAULT_PLANNER,
+    ...planner,
+    tasks: (planner.tasks || []).filter(task => !sampleTaskIds.has(String(task.id))),
+    weekly: Object.fromEntries(Object.entries({ ...DEFAULT_PLANNER.weekly, ...(planner.weekly || {}) })
+      .map(([day, note]) => [day, sampleWeeklyPlans.has(note) ? "" : note])),
+    goals: (planner.goals || []).filter(goal => !sampleGoals.has(goal)),
+    notes: planner.notes === sampleNotes ? "" : planner.notes || "",
+    habits: (planner.habits || []).filter(habit => !sampleHabitIds.has(String(habit.id)))
+  };
 };
 
-
-const DEFAULT_NOTIFICATIONS = [
-  {
-    id: "1",
-    type: "reminder",
-    text: "Your sourdough starter needs feeding!",
-    time: "10:15 AM",
-    group: "Today"
-  },
-  {
-    id: "2",
-    type: "info",
-    text: "You completed all your wellness habits yesterday. Great job!",
-    time: "9:00 PM",
-    group: "Yesterday"
-  }
-];
-
+const cleanNotifications = (notifications = []) => {
+  const sampleMessages = new Set([
+    "Your sourdough starter needs feeding!",
+    "You completed all your wellness habits yesterday. Great job!",
+    'Saved "Warm Fig & Honey Oatmeal" to your breakfast planner.',
+    "Cozy Cafe budget is nearing 85% of limit.",
+    "Welcome to SoloSphere! Let's create a peaceful space."
+  ]);
+  return (Array.isArray(notifications) ? notifications : [])
+    .filter(notification => !sampleMessages.has(notification.text));
+};
 
 // ============================================================
 // RECIPES
 // ============================================================
 
-const INITIAL_RECIPES = [
-  {
-    id: 1,
-    title: "Warm Fig & Honey Oatmeal",
-    image:
-      "https://images.unsplash.com/photo-1517881917430-e70dfb3610aa?auto=format&fit=crop&q=80&w=800",
-    time: "15m",
-    difficulty: "Easy",
-    calories: "320 kcal",
-    cuisine: "Breakfast",
-    description:
-      "A cozy, steaming bowl of rolled oats cooked in almond milk, topped with sweet fresh figs, a generous drizzle of local honey, toasted pecans, and a pinch of cinnamon.",
-    ingredients: [
-      "1 cup Rolled Oats",
-      "2 cups Almond Milk (or water)",
-      "3 Fresh Figs, sliced",
-      "1 tbsp Local Honey",
-      "2 tbsp Toasted Pecans, chopped",
-      "1/2 tsp Ground Cinnamon",
-      "Pinch of sea salt"
-    ],
-    steps: [
-      "In a small saucepan, bring the almond milk and salt to a gentle boil.",
-      "Stir in the rolled oats and reduce the heat to low. Simmer for about 10 minutes, stirring occasionally, until the oats are thick and creamy.",
-      "Stir in the ground cinnamon and half of the chopped pecans.",
-      "Spoon the hot oatmeal into your favorite ceramic bowl.",
-      "Arrange the fresh fig slices beautifully on top.",
-      "Drizzle with honey and scatter the remaining pecans on top. Enjoy warm."
-    ],
-    nutrition: {
-      protein: "8g",
-      carbs: "54g",
-      fat: "9g",
-      fiber: "7g"
-    }
-  },
-
-  {
-    id: 2,
-    title: "Miso Butter Roasted Pumpkin",
-    image:
-      "https://images.unsplash.com/photo-1508737027454-e6454ef45afd?auto=format&fit=crop&q=80&w=800",
-    time: "40m",
-    difficulty: "Medium",
-    calories: "280 kcal",
-    cuisine: "Cozy Dinner",
-    description:
-      "Golden, sweet roasted pumpkin wedges glazed with an umami-rich white miso and brown butter mixture, finished with toasted sesame seeds and fresh scallions.",
-    ingredients: [
-      "1 small Kabocha or Sugar Pumpkin, cut into wedges",
-      "2 tbsp Unsalted Butter (melted)",
-      "1.5 tbsp White Miso Paste",
-      "1 tbsp Maple Syrup",
-      "1 tbsp Olive Oil",
-      "1 tbsp Sesame Seeds, toasted",
-      "2 stalks Green Scallion, sliced"
-    ],
-    steps: [
-      "Preheat your oven to 400°F (200°C) and line a baking sheet with parchment paper.",
-      "Wash the pumpkin, scoop out the seeds, and cut it into wedges.",
-      "In a small bowl, whisk together the melted butter, miso paste, maple syrup, and olive oil.",
-      "Arrange the pumpkin wedges on the baking sheet and brush with the miso butter mixture.",
-      "Roast in the oven for 30–35 minutes until golden.",
-      "Transfer to a serving plate and garnish with sesame seeds and scallions."
-    ],
-    nutrition: {
-      protein: "4g",
-      carbs: "22g",
-      fat: "14g",
-      fiber: "5g"
-    }
-  },
-
-  {
-    id: 3,
-    title: "Creamy Tuscan Wild Mushroom Pasta",
-    image:
-      "https://images.unsplash.com/photo-1645112411341-6c4fd023714a?auto=format&fit=crop&q=80&w=800",
-    time: "25m",
-    difficulty: "Easy",
-    calories: "540 kcal",
-    cuisine: "Lunch",
-    description:
-      "Tender pasta tossed in a velvety garlic and herb sauce with sautéed wild mushrooms, baby spinach, and sun-dried tomatoes.",
-    ingredients: [
-      "100g Pasta",
-      "150g Mixed Wild Mushrooms, sliced",
-      "2 cloves Garlic, minced",
-      "30g Sun-dried Tomatoes, sliced",
-      "1 cup Fresh Baby Spinach",
-      "1/2 cup Heavy Cream",
-      "1 tbsp Olive Oil"
-    ],
-    steps: [
-      "Bring a large pot of salted water to a boil and cook the pasta.",
-      "Heat olive oil in a skillet and cook mushrooms until browned.",
-      "Add garlic and sun-dried tomatoes.",
-      "Pour in cream and bring to a gentle simmer.",
-      "Add pasta and spinach and toss together.",
-      "Season and serve."
-    ],
-    nutrition: {
-      protein: "14g",
-      carbs: "68g",
-      fat: "24g",
-      fiber: "4g"
-    }
-  },
-
-  {
-    id: 4,
-    title: "Warm Cardamom Pear Crisp",
-    image:
-      "https://images.unsplash.com/photo-1541014741259-df5290dbb82e?auto=format&fit=crop&q=80&w=800",
-    time: "35m",
-    difficulty: "Medium",
-    calories: "310 kcal",
-    cuisine: "Dessert",
-    description:
-      "Sweet, juicy pears baked with aromatic ground cardamom under a rustic, crunchy oat and pecan crumble topping.",
-    ingredients: [
-      "3 Pears",
-      "1/2 tsp Ground Cardamom",
-      "1 tsp Lemon Juice",
-      "1 tbsp Maple Syrup",
-      "1/2 cup Rolled Oats",
-      "1/4 cup Pecans"
-    ],
-    steps: [
-      "Preheat oven to 375°F.",
-      "Toss pears with cardamom, lemon juice and maple syrup.",
-      "Prepare the crumble topping.",
-      "Scatter topping over pears.",
-      "Bake for 25–30 minutes.",
-      "Serve warm."
-    ],
-    nutrition: {
-      protein: "3g",
-      carbs: "45g",
-      fat: "12g",
-      fiber: "6g"
-    }
-  }
-];
-
-
-// ============================================================
-// BLOG POSTS
-// ============================================================
-
-const BLOG_POSTS = [
-  {
-    id: 1,
-    title: "The Art of Slow Living Alone: Finding Comfort in Quiet Spaces",
-    excerpt:
-      "How to transform your single apartment from just a place to sleep into a true sanctuary.",
-    content:
-      "Living alone is often framed as a transitional phase, but it is actually one of the most powerful opportunities to understand who you are.",
-    image:
-      "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=800",
-    readTime: "6 min read",
-    date: "July 11, 2026",
-    tag: "Mindfulness",
-    featured: true
-  },
-
-  {
-    id: 2,
-    title: "Designing a Cozy Reading Nook on a Tiny Budget",
-    excerpt:
-      "Creating a dedicated space for books doesn’t require a massive library.",
-    content:
-      "A reading nook is more than just a chair; it is an invitation.",
-    image:
-      "https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&q=80&w=800",
-    readTime: "4 min read",
-    date: "July 09, 2026",
-    tag: "Cozy Spaces",
-    featured: false
-  },
-
-  {
-    id: 3,
-    title: "A Solo Cook’s Guide to Meal Prep Without the Waste",
-    excerpt:
-      "Learn how to prep base components that adapt into different meals.",
-    content:
-      "The biggest challenge of solo cooking is waste.",
-    image:
-      "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=800",
-    readTime: "5 min read",
-    date: "July 06, 2026",
-    tag: "Solo Kitchen",
-    featured: false
-  },
-
-  {
-    id: 4,
-    title: "The Magic of the Evening Tea Ritual",
-    excerpt:
-      "How a slow-brewed pot can signal to your body that it is time to rest.",
-    content:
-      "Our days are filled with constant digital stimulation.",
-    image:
-      "https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&q=80&w=800",
-    readTime: "3 min read",
-    date: "July 02, 2026",
-    tag: "Self Care",
-    featured: false
-  }
-];
+const INITIAL_RECIPES = [];
 
 
 // ============================================================
@@ -445,6 +130,7 @@ export const AppProvider = ({ children }) => {
   // ================= RECIPES =================
 
   const [recipes, setRecipes] = useState(INITIAL_RECIPES);
+  const [blogPosts, setBlogPosts] = useState([]);
 
 
   // ================= PLANNER =================
@@ -460,7 +146,7 @@ export const AppProvider = ({ children }) => {
 
   // ============================================================
   // RESET DATA WHEN USER CHANGES
-  // This is important so Anshika's data never appears for Ananya
+  // Reset state when the authenticated user changes.
   // ============================================================
 
   useEffect(() => {
@@ -471,6 +157,7 @@ export const AppProvider = ({ children }) => {
       setProfile(DEFAULT_PROFILE);
       setPlanner(DEFAULT_PLANNER);
       setNotifications(DEFAULT_NOTIFICATIONS);
+      setBlogPosts([]);
       setExpenses([]);
       setCategories([]);
 
@@ -489,6 +176,7 @@ export const AppProvider = ({ children }) => {
 
       setPlanner(DEFAULT_PLANNER);
       setNotifications(DEFAULT_NOTIFICATIONS);
+      setBlogPosts([]);
       setExpenses([]);
       setCategories([]);
     }
@@ -517,9 +205,6 @@ export const AppProvider = ({ children }) => {
           const data = userDocSnap.data();
 
 
-          // IMPORTANT:
-          // Firebase Authentication displayName gets priority.
-          // So if logged-in user is Ananya, Ananya will show.
           const loadedProfile = {
             ...DEFAULT_PROFILE,
             ...(data.profile || {}),
@@ -537,20 +222,21 @@ export const AppProvider = ({ children }) => {
 
 
           if (data.planner) {
-            setPlanner({
+            setPlanner(cleanPlannerData({
               ...DEFAULT_PLANNER,
               ...data.planner
-            });
+            }));
           } else {
-            setPlanner(DEFAULT_PLANNER);
+            setPlanner(cleanPlannerData(DEFAULT_PLANNER));
           }
 
 
           if (data.notifications) {
-            setNotifications(data.notifications);
+            setNotifications(cleanNotifications(data.notifications));
           } else {
             setNotifications(DEFAULT_NOTIFICATIONS);
           }
+          setBlogPosts(Array.isArray(data.blogPosts) ? data.blogPosts : []);
         }
 
 
@@ -566,12 +252,13 @@ export const AppProvider = ({ children }) => {
           };
 
           setProfile(newProfile);
-          setPlanner(DEFAULT_PLANNER);
+          setPlanner(cleanPlannerData(DEFAULT_PLANNER));
           setNotifications(DEFAULT_NOTIFICATIONS);
+          setBlogPosts([]);
 
           await setDoc(userDocRef, {
             profile: newProfile,
-            planner: DEFAULT_PLANNER,
+            planner: cleanPlannerData(DEFAULT_PLANNER),
             notifications: DEFAULT_NOTIFICATIONS
           });
         }
@@ -633,39 +320,11 @@ export const AppProvider = ({ children }) => {
         const categoriesSnapshot =
           await getDocs(categoriesQuery);
 
-        let loadedCategories =
+        const loadedCategories =
           categoriesSnapshot.docs.map((document) => ({
             id: document.id,
             ...document.data()
           }));
-
-
-        // Create default categories for a new user
-        if (loadedCategories.length === 0) {
-          const createdCategories = [];
-
-          for (const category of DEFAULT_CATEGORIES) {
-            const newCategoryRef = await addDoc(
-              collection(db, "categories"),
-              {
-                userId: user.uid,
-                name: category.name,
-                color: category.color,
-                limit: category.limit
-              }
-            );
-
-            createdCategories.push({
-              id: newCategoryRef.id,
-              userId: user.uid,
-              name: category.name,
-              color: category.color,
-              limit: category.limit
-            });
-          }
-
-          loadedCategories = createdCategories;
-        }
 
         setCategories(loadedCategories);
 
@@ -699,7 +358,8 @@ export const AppProvider = ({ children }) => {
           {
             profile,
             planner,
-            notifications
+            notifications,
+            blogPosts
           },
           {
             merge: true
@@ -718,6 +378,7 @@ export const AppProvider = ({ children }) => {
     profile,
     planner,
     notifications,
+    blogPosts,
     user,
     dataReady
   ]);
@@ -762,6 +423,7 @@ export const AppProvider = ({ children }) => {
   const addNotification = (notif) => {
     const newNotif = {
       id: Date.now().toString(),
+      createdAt: new Date().toISOString(),
       ...notif
     };
 
@@ -821,7 +483,6 @@ export const AppProvider = ({ children }) => {
             minute: "2-digit"
           }
         ),
-        group: "Today"
       });
 
       return formattedExpense;
@@ -1364,7 +1025,7 @@ export const AppProvider = ({ children }) => {
         expenses,
 
         recipes,
-        blogPosts: BLOG_POSTS,
+        blogPosts,
 
         planner,
         notifications,

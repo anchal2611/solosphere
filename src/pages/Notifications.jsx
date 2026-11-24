@@ -14,8 +14,29 @@ import {
 export default function Notifications() {
   const { notifications, clearNotifications, markNotificationAsRead, deleteNotification } = useContext(AppContext);
 
-  // Group notifications
-  const groups = ['Today', 'Yesterday', 'Earlier'];
+  const getDateKey = (date) => {
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit'
+    }).formatToParts(date);
+    const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+    return `${values.year}-${values.month}-${values.day}`;
+  };
+  const todayKey = getDateKey(new Date());
+  const [year, month, day] = todayKey.split('-').map(Number);
+  const yesterdayKey = getDateKey(new Date(Date.UTC(year, month - 1, day - 1, 12)));
+  const getNotificationDate = (notification) => {
+    if (notification.createdAt) return new Date(notification.createdAt);
+    const legacyIdTimestamp = Number(notification.id);
+    return legacyIdTimestamp > 1_000_000_000_000 ? new Date(legacyIdTimestamp) : null;
+  };
+  const groupedNotifications = notifications.reduce((groups, notification) => {
+    const date = getNotificationDate(notification);
+    const dateKey = date ? getDateKey(date) : null;
+    const group = dateKey === todayKey ? 'Today' : dateKey === yesterdayKey ? 'Yesterday' : 'Earlier';
+    groups[group].push(notification);
+    return groups;
+  }, { Today: [], Yesterday: [], Earlier: [] });
+  const groupOrder = ['Today', 'Yesterday', 'Earlier'];
 
   const getIcon = (type) => {
     switch (type) {
@@ -71,8 +92,8 @@ export default function Notifications() {
       {/* Notifications Grouped List */}
       {notifications.length > 0 ? (
         <div className="space-y-8">
-          {groups.map((group) => {
-            const groupNotifs = notifications.filter(n => n.group === group);
+          {groupOrder.map((group) => {
+            const groupNotifs = groupedNotifications[group];
             if (groupNotifs.length === 0) return null;
 
             return (
@@ -99,7 +120,7 @@ export default function Notifications() {
                           </p>
                           <div className="flex items-center gap-1 text-[10px] text-brand-text-muted font-sans">
                             <Clock size={10} />
-                            <span>{notif.time}</span>
+                            <span>{notif.time || getNotificationDate(notif)?.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' }) || 'Time unavailable'}</span>
                             {notif.read && <span className="text-brand-olive font-semibold ml-1.5">• Read</span>}
                           </div>
                         </div>

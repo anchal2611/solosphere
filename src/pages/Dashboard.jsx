@@ -1,17 +1,15 @@
 import React, { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppContext } from '../context/AppContext';
+import RecipeImage from '../components/RecipeImage';
 import { 
   Calendar, 
   DollarSign, 
   BookOpen, 
-  FileText, 
   ArrowRight,
-  TrendingUp,
   Sparkles,
   Heart,
   CheckCircle2,
-  Bookmark,
   Sun,
   Moon
 } from 'lucide-react';
@@ -19,21 +17,27 @@ import {
 export default function Dashboard() {
   const { profile, planner, expenses, recipes, blogPosts, notifications } = useContext(AppContext);
   const navigate = useNavigate();
+  const userName = profile.name?.trim();
 
   // Get current hour to set custom greeting
   const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return { text: `Good Morning, ${profile.name}`, icon: Sun };
-    if (hour < 18) return { text: `Good Afternoon, ${profile.name}`, icon: Sparkles };
-    return { text: `Good Evening, ${profile.name}`, icon: Moon };
+    const hour = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', hour: 'numeric', hour12: false }).format(new Date()));
+    const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
+    const icon = hour < 12 ? Sun : hour < 18 ? Sparkles : Moon;
+    return { text: userName ? `${greeting}, ${userName}` : greeting, icon };
   };
 
   const greetingObj = getGreeting();
   const GreetingIcon = greetingObj.icon;
 
   // 1. Calculate expense summary
-  const totalSpent = expenses.reduce((acc, curr) => acc + curr.amount, 0);
-  const budgetPercent = Math.min(Math.round((totalSpent / profile.monthlyBudget) * 100), 100);
+  const currentDate = new Date();
+  const dateParts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit' }).formatToParts(currentDate);
+  const currentMonth = `${dateParts.find(part => part.type === 'year').value}-${dateParts.find(part => part.type === 'month').value}`;
+  const monthlyExpenses = expenses.filter(expense => expense.date?.startsWith(currentMonth));
+  const totalSpent = monthlyExpenses.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
+  const monthlyBudget = Number(profile.monthlyBudget) || 0;
+  const budgetPercent = monthlyBudget > 0 ? Math.min(Math.round((totalSpent / monthlyBudget) * 100), 100) : 0;
 
   // 2. Recipe Recommendation
   const recommendedRecipe = recipes[0];
@@ -44,6 +48,9 @@ export default function Dashboard() {
   // 4. Next planner tasks (first 3 uncompleted)
   const pendingTasks = planner.tasks.filter(t => !t.completed).slice(0, 3);
   const completedCount = planner.tasks.filter(t => t.completed).length;
+  const todayKey = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', weekday: 'short' }).format(new Date());
+  const completedHabitsToday = planner.habits.filter(habit => habit.history?.[todayKey]).length;
+  const recentNotifications = notifications.slice(0, 3);
 
   const viewRecipeDetail = (id) => {
     navigate(`/recipes/${id}`);
@@ -58,7 +65,7 @@ export default function Dashboard() {
           {greetingObj.text}
         </h1>
         <p className="font-sans text-brand-text-muted text-base max-w-xl">
-          Welcome to your quiet corner. Today is a clean slate to nourish yourself, manage your space, and rest.
+          {userName ? `Here is your overview for today, ${userName}.` : 'Your personal overview for today.'}
         </p>
       </header>
 
@@ -76,13 +83,13 @@ export default function Dashboard() {
               <span>Daily Intention</span>
             </div>
             <p className="font-serif text-2xl italic text-brand-text-dark leading-relaxed">
-              "Create a space that feels like a warm embrace. Give yourself permission to slow down, cook a beautiful meal for one, and let your mind drift."
+              {profile.wellnessGoal || 'Add a personal intention in your profile to keep it close throughout the day.'}
             </p>
           </div>
           <div className="mt-8 pt-6 border-t border-brand-text-dark/5 flex flex-wrap gap-6 items-center z-10 justify-between">
             <div className="flex items-center gap-2">
               <Heart size={16} className="text-brand-terracotta fill-brand-terracotta" />
-              <span className="font-sans text-sm text-brand-text-muted">Streak: <strong>{profile.streak} days</strong> of mindful habits</span>
+              <span className="font-sans text-sm text-brand-text-muted"><strong>{completedHabitsToday}</strong> of {planner.habits.length} habits completed today</span>
             </div>
             <button 
               onClick={() => navigate('/planner')}
@@ -104,7 +111,7 @@ export default function Dashboard() {
             <div className="space-y-2">
               <div className="flex justify-between text-xs text-brand-text-muted font-sans">
                 <span>Monthly Budget</span>
-                <span>₹{profile.monthlyBudget}</span>
+                <span>₹{monthlyBudget.toFixed(2)}</span>
               </div>
               <p className="text-3xl font-serif font-bold text-brand-text-dark">
                 ₹{totalSpent.toFixed(2)}
@@ -122,13 +129,13 @@ export default function Dashboard() {
               </div>
               <div className="flex justify-between text-xxs font-sans text-brand-text-muted">
                 <span>{budgetPercent}% spent</span>
-                <span>₹{(profile.monthlyBudget - totalSpent).toFixed(2)} left</span>
+                <span>₹{Math.max(monthlyBudget - totalSpent, 0).toFixed(2)} left</span>
               </div>
             </div>
           </div>
 
           <div className="pt-4 border-t border-brand-text-muted/10 flex items-center justify-between mt-4">
-            <span className="text-xs text-brand-text-muted">Recent: Cinnamon Latte & Scone</span>
+            <span className="text-xs text-brand-text-muted">{monthlyExpenses[0] ? `Recent: ${monthlyExpenses[0].description}` : 'No expenses this month'}</span>
             <button 
               onClick={() => navigate('/expenses')}
               className="text-xs text-brand-terracotta hover:underline font-semibold"
@@ -140,9 +147,10 @@ export default function Dashboard() {
 
         {/* Recipe Recommendation Card */}
         <div className="bg-white rounded-brand overflow-hidden shadow-sm border border-brand-bg-beige flex flex-col group hover:shadow-md transition-shadow duration-300">
+          {recommendedRecipe ? <>
           <div className="h-44 overflow-hidden relative">
-            <img 
-              src={recommendedRecipe.image} 
+            <RecipeImage
+              recipe={recommendedRecipe}
               alt={recommendedRecipe.title}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
@@ -172,6 +180,12 @@ export default function Dashboard() {
               </button>
             </div>
           </div>
+          </> : <div className="p-6 min-h-64 flex flex-col justify-center items-center text-center gap-3">
+            <BookOpen size={24} className="text-brand-olive" />
+            <h3 className="font-serif text-lg font-bold text-brand-text-dark">Recipes are unavailable</h3>
+            <p className="text-xs text-brand-text-muted">Connect to the recipe service to see recommendations.</p>
+            <button onClick={() => navigate('/recipes')} className="text-xs text-brand-terracotta font-semibold">Browse recipes</button>
+          </div>}
         </div>
 
         {/* Today's Priorities (Planner) */}
@@ -194,13 +208,13 @@ export default function Dashboard() {
             ) : (
               <div className="py-4 text-center">
                 <CheckCircle2 size={24} className="text-brand-olive mx-auto mb-2 opacity-50" />
-                <p className="font-sans text-xs text-brand-text-muted">All priority tasks checked off!</p>
+              <p className="font-sans text-xs text-brand-text-muted">No pending tasks. Add one in your planner when you need it.</p>
               </div>
             )}
           </div>
 
           <div className="pt-4 border-t border-brand-text-muted/10 flex items-center justify-between mt-4">
-            <span className="text-xs text-brand-text-muted">{completedCount} tasks completed today</span>
+            <span className="text-xs text-brand-text-muted">{completedCount} tasks completed</span>
             <button 
               onClick={() => navigate('/planner')}
               className="text-xs text-brand-terracotta hover:underline font-semibold"
@@ -212,6 +226,7 @@ export default function Dashboard() {
 
         {/* Recent Blog Card */}
         <div className="bg-white p-6 rounded-brand shadow-sm border border-brand-bg-beige flex flex-col justify-between hover:shadow-md transition-shadow duration-300">
+          {featuredBlog ? <>
           <div className="space-y-3">
             <span className="text-xxs text-brand-olive font-sans uppercase tracking-widest font-semibold block">Journal Reflection</span>
             <h3 className="font-serif text-lg font-bold text-brand-text-dark leading-snug line-clamp-2">
@@ -232,17 +247,23 @@ export default function Dashboard() {
               <ArrowRight size={12} className="group-hover/btn:translate-x-0.5 transition-transform" />
             </button>
           </div>
+          </> : <div className="space-y-3">
+            <span className="text-xxs text-brand-olive font-sans uppercase tracking-widest font-semibold block">Journal</span>
+            <h3 className="font-serif text-lg font-bold text-brand-text-dark">No articles yet</h3>
+            <p className="text-xs text-brand-text-muted">Journal articles will appear here when they are available.</p>
+            <button onClick={() => navigate('/blog')} className="text-xs text-brand-terracotta font-semibold">Open Journal</button>
+          </div>}
         </div>
 
         {/* Cozy Stick-Note Reminder Card */}
         <div className="bg-[#FFFDF4] p-6 rounded-brand shadow-sm border border-[#F5EAD4] flex flex-col justify-between relative overflow-hidden rotate-1 hover:rotate-0 transition-transform duration-300">
-          {/* Tape Mock */}
+          {/* Decorative note tape */}
           <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-16 h-4 bg-brand-gold/20 shadow-sm rotate-[-2deg]"></div>
           
           <div className="space-y-4 mt-2">
             <span className="font-serif italic text-sm text-brand-cinnamon block border-b border-brand-gold/20 pb-1">Cozy Note</span>
             <p className="font-sans text-xs text-brand-text-dark leading-relaxed italic">
-              "{planner.notes}"
+              {planner.notes || 'Your planner notes will appear here.'}
             </p>
           </div>
           
@@ -263,7 +284,7 @@ export default function Dashboard() {
             <h3 className="font-serif text-lg font-bold text-brand-text-dark">Activity & Alerts</h3>
             
             <div className="space-y-4 relative before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-brand-bg-beige">
-              {notifications.slice(0, 3).map((notif) => (
+              {recentNotifications.length > 0 ? recentNotifications.map((notif) => (
                 <div key={notif.id} className="flex gap-4 items-start text-xs relative pl-6">
                   {/* Bullet */}
                   <span className={`absolute left-1.5 top-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${
@@ -276,12 +297,12 @@ export default function Dashboard() {
                     <span className="text-xxs text-brand-text-muted block mt-0.5">{notif.time}</span>
                   </div>
                 </div>
-              ))}
+              )) : <p className="text-xs text-brand-text-muted">Your recent activity will appear here.</p>}
             </div>
           </div>
 
           <div className="pt-4 border-t border-brand-text-muted/10 flex items-center justify-between mt-4">
-            <span className="text-xs text-brand-text-muted">Total 5 notifications in inbox</span>
+            <span className="text-xs text-brand-text-muted">{notifications.length} notifications in inbox</span>
             <button 
               onClick={() => navigate('/notifications')}
               className="text-xs text-brand-terracotta hover:underline font-semibold"

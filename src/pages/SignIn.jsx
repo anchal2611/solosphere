@@ -5,6 +5,10 @@ import { auth, googleProvider } from "../firebase/firebase";
 import {
   signInWithEmailAndPassword,
   signInWithPopup,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import { 
   Lock, 
@@ -13,9 +17,7 @@ import {
   Eye, 
   EyeOff, 
   Compass, 
-  ShieldCheck, 
   AlertTriangle,
-  Clock,
   BookOpen,
   DollarSign,
   Coffee
@@ -30,12 +32,8 @@ export default function SignIn() {
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Flow & Security UI simulation states
-  const [is2FAStep, setIs2FAStep] = useState(false);
-  const [verificationCode, setVerificationCode] = useState('');
-  const [attemptCount, setAttemptCount] = useState(0);
-  const [lockoutTimer, setLockoutTimer] = useState(0); 
   const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSignInSubmit = async (e) => {
@@ -44,7 +42,9 @@ export default function SignIn() {
     try {
       setIsSubmitting(true);
       setErrorMessage("");
+      setSuccessMessage('');
 
+      await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
       await signInWithEmailAndPassword(
         auth,
         email,
@@ -61,6 +61,7 @@ export default function SignIn() {
 
   const handleGoogleLogin = async () => {
     try {
+      await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
       await signInWithPopup(auth, googleProvider);
       navigate("/dashboard");
     } catch (error) {
@@ -68,13 +69,17 @@ export default function SignIn() {
     }
   };
 
-  const handle2FAVerify = (e) => {
-    e.preventDefault();
-    if (verificationCode.length === 6) {
-      // Redirect straight to dashboard
-      navigate('/dashboard');
-    } else {
-      setErrorMessage('Invalid verification code. Please check your SMS/email.');
+  const handlePasswordReset = async () => {
+    if (!email.trim()) {
+      setErrorMessage('Enter your email address first, then request a password reset.');
+      return;
+    }
+    try {
+      setErrorMessage('');
+      await sendPasswordResetEmail(auth, email.trim());
+      setSuccessMessage('Password reset instructions have been sent to your email.');
+    } catch (error) {
+      setErrorMessage(error.message);
     }
   };
 
@@ -100,10 +105,8 @@ export default function SignIn() {
           </div>
         </div>
 
-        {/* Form Panel (Toggles to 2FA card) */}
+        {/* Sign-in form */}
         <div className="max-w-md w-full mx-auto space-y-6 my-auto">
-          {!is2FAStep ? (
-            // SIGN IN STATE
             <div className="space-y-6">
               <div className="space-y-1.5 opacity-0 animate-fade-in-up delay-75">
                 <h2 className="font-serif text-2xl md:text-3.5xl font-bold text-brand-text-dark">Enter Your Space</h2>
@@ -113,10 +116,11 @@ export default function SignIn() {
               {/* Locked/Error state banner */}
               {errorMessage && (
                 <div className={`p-4 rounded-brand border text-xs font-sans flex gap-2.5 items-start bg-brand-terracotta/5 border-brand-terracotta/20 text-brand-terracotta`}>
-                  {lockoutTimer > 0 ? <Clock size={16} className="shrink-0 mt-0.5" /> : <AlertTriangle size={16} className="shrink-0 mt-0.5" />}
+                  <AlertTriangle size={16} className="shrink-0 mt-0.5" />
                   <span>{errorMessage}</span>
                 </div>
               )}
+              {successMessage && <p role="status" className="p-4 rounded-brand border text-xs font-sans bg-brand-olive/5 border-brand-olive/20 text-brand-olive">{successMessage}</p>}
 
               <form onSubmit={handleSignInSubmit} className="space-y-4 font-sans text-xs text-left">
                 {/* Email Address */}
@@ -129,8 +133,7 @@ export default function SignIn() {
                     <input 
                       type="email"
                       required
-                      disabled={lockoutTimer > 0}
-                      placeholder="anshika@domain.com"
+                      placeholder="you@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full pl-9 pr-4 py-2.5 rounded-brand border border-brand-bg-beige bg-white focus:outline-none focus:border-brand-terracotta/40 focus:ring-4 focus:ring-brand-terracotta/5 transition-all duration-300 disabled:opacity-50"
@@ -142,9 +145,9 @@ export default function SignIn() {
                 <div className="space-y-1.5 opacity-0 animate-fade-in-up delay-200">
                   <div className="flex justify-between items-center">
                     <label className="block text-[10px] uppercase tracking-wider font-semibold text-brand-text-muted">Password</label>
-                    <a href="#forgot" className="text-xxs text-brand-text-muted hover:text-brand-text-dark underline-slide">
+                    <button type="button" onClick={handlePasswordReset} className="text-xxs text-brand-text-muted hover:text-brand-text-dark underline-slide">
                       Forgot password?
-                    </a>
+                    </button>
                   </div>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-brand-text-muted">
@@ -153,7 +156,6 @@ export default function SignIn() {
                     <input 
                       type={showPassword ? 'text' : 'password'}
                       required
-                      disabled={lockoutTimer > 0}
                       placeholder="Enter password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -161,7 +163,6 @@ export default function SignIn() {
                     />
                     <button
                       type="button"
-                      disabled={lockoutTimer > 0}
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-brand-text-muted hover:text-brand-text-dark transition-opacity duration-300 disabled:opacity-50"
                     >
@@ -186,7 +187,7 @@ export default function SignIn() {
 
                   <button
                     type="submit"
-                    disabled={isSubmitting || lockoutTimer > 0}
+                    disabled={isSubmitting}
                     className="w-full bg-brand-terracotta text-brand-bg-warm py-3 rounded-brand font-semibold hover:bg-brand-cinnamon shadow-md hover:-translate-y-0.5 active:scale-95 hover:scale-[1.02] active:translate-y-0 transition-all duration-300 disabled:opacity-50"
                   >
                     {isSubmitting ? 'Verifying...' : 'Sign In'}
@@ -214,61 +215,6 @@ export default function SignIn() {
                 </div>
               </form>
             </div>
-          ) : (
-            // TWO-FACTOR AUTHENTICATION STATE
-            <div className="space-y-6">
-              <div className="space-y-1.5 animate-fade-in-up delay-75">
-                <h2 className="font-serif text-2xl md:text-3.5xl font-bold text-brand-text-dark">Safety Check</h2>
-                <p className="font-sans text-xs text-brand-text-muted">Enter the 6-digit verification code sent to your registered device.</p>
-              </div>
-
-              {errorMessage && (
-                <div className="p-4 rounded-brand border bg-brand-terracotta/5 border-brand-terracotta/20 text-brand-terracotta text-xs font-sans">
-                  {errorMessage}
-                </div>
-              )}
-
-              <form onSubmit={handle2FAVerify} className="space-y-4 font-sans text-xs text-left">
-                <div className="space-y-1.5 animate-fade-in-up delay-150">
-                  <label className="block text-[10px] uppercase tracking-wider font-semibold text-brand-text-muted">Verification Code</label>
-                  <div className="relative">
-                    <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-brand-text-muted">
-                      <ShieldCheck size={14} />
-                    </span>
-                    <input 
-                      type="text"
-                      maxLength="6"
-                      required
-                      placeholder="e.g. 123456"
-                      value={verificationCode}
-                      onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
-                      className="w-full pl-9 pr-4 py-2.5 rounded-brand border border-brand-bg-beige bg-white focus:outline-none focus:border-brand-terracotta/40 focus:ring-4 focus:ring-brand-terracotta/5 tracking-widest text-center text-sm font-semibold transition-all duration-300"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full mt-4 bg-brand-olive text-brand-bg-warm py-3 rounded-brand font-semibold hover:bg-brand-sage shadow-md hover:-translate-y-0.5 active:scale-95 hover:scale-[1.02] active:translate-y-0 transition-all duration-300 animate-fade-in-up delay-200"
-                >
-                  Verify & Enter
-                </button>
-              </form>
-
-              <div className="text-center pt-2 animate-fade-in-up delay-300">
-                <button
-                  onClick={() => {
-                    setIs2FAStep(false);
-                    setVerificationCode('');
-                    setErrorMessage('');
-                  }}
-                  className="text-xxs text-brand-text-muted hover:text-brand-text-dark underline-slide"
-                >
-                  Back to Sign In
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Footer info & Signature credit */}
@@ -283,7 +229,7 @@ export default function SignIn() {
             </button>
           </div>
           <p className="text-[9px] uppercase tracking-widest text-brand-text-muted/40 font-semibold font-sans">
-            Made with care by Anshika & Anchal
+            Secure sign-in powered by Firebase
           </p>
         </div>
 
@@ -304,19 +250,13 @@ export default function SignIn() {
                 <DollarSign size={16} className="text-brand-terracotta" />
               </div>
               <div className="space-y-2">
-                <span className="text-[10px] font-sans text-brand-text-muted block">Monthly Allowance Limits</span>
-                <div className="w-full bg-brand-bg-warm h-2 rounded-full overflow-hidden">
-                  <div className="bg-brand-gold h-full w-[65%] rounded-full"></div>
-                </div>
-                <div className="flex justify-between text-[10px] font-sans text-brand-text-muted">
-                  <span>65% Spent</span>
-                  <span>₹420 Remaining</span>
-                </div>
+                <span className="text-[10px] font-sans text-brand-text-muted block">Track spending against the budget you set.</span>
+                <div className="w-full bg-brand-bg-warm h-2 rounded-full overflow-hidden"></div>
               </div>
             </div>
             <div className="flex justify-between items-center text-xxs font-sans text-brand-text-muted pt-4 border-t border-brand-bg-warm">
-              <span>Updated a moment ago</span>
-              <span className="text-brand-olive font-semibold">Healthy Balance</span>
+              <span>Monthly overview</span>
+              <span className="text-brand-olive font-semibold">Personal tracking</span>
             </div>
           </div>
 
@@ -324,16 +264,16 @@ export default function SignIn() {
           <div className="w-full bg-white rounded-brand-lg p-10 relative flex flex-col justify-between shadow-sm border border-brand-bg-warm/50 transform -rotate-1 group-hover:rotate-0 transition-transform duration-500 ease-out z-10">
             <div className="space-y-6">
               <div className="flex justify-between items-center border-b border-brand-bg-warm pb-3">
-                <span className="font-serif italic text-xs text-brand-cinnamon font-medium">Sourdough Bake</span>
+                <span className="font-serif italic text-xs text-brand-cinnamon font-medium">Solo Kitchen</span>
                 <BookOpen size={18} className="text-brand-gold" />
               </div>
               
               <h3 className="font-serif text-2xl font-bold text-brand-text-dark leading-snug">
-                "Simple meals cooked with love."
+                "Find recipes using the ingredients you have."
               </h3>
               
               <p className="font-sans text-xs text-brand-text-muted leading-relaxed">
-                Log in to search recipes matching whatever leftovers are sitting in your fridge, checklist your morning steps, and log quiet expenditures.
+                Sign in to search recipes, manage your planner, and keep track of expenses.
               </p>
             </div>
 

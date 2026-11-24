@@ -12,6 +12,13 @@ import {
   UtensilsCrossed,
   HelpCircle
 } from 'lucide-react';
+import RecipeImage from '../components/RecipeImage';
+
+const STOP_WORDS = new Set([
+  'i', 'have', 'some', 'and', 'my', 'fridge', 'in', 'with', 'a', 'an', 'the', 'for',
+  'me', 'to', 'on', 'hand', 'of', 'any', 'leftover', 'leftovers', 'need',
+  'want', 'cook', 'make', 'recipe', 'recipes', 'using', 'about', 'just'
+]);
 
 export default function Recipes() {
   const { recipes, profile, toggleRecipeSaved } = useContext(AppContext);
@@ -29,13 +36,6 @@ export default function Recipes() {
   const [promptResults, setPromptResults] = useState(null); 
   const [hasError, setHasError] = useState(false);
 
-  // Common stop words to filter out when parsing keywords
-  const stopWords = new Set([
-    'i', 'have', 'some', 'and', 'my', 'fridge', 'in', 'with', 'a', 'an', 'the', 'for', 
-    'me', 'to', 'on', 'hand', 'of', 'some', 'any', 'leftover', 'leftovers', 'need', 
-    'want', 'cook', 'make', 'recipe', 'recipes', 'using', 'about', 'just'
-  ]);
-
   // Parse text into ingredient keywords
   useEffect(() => {
     if (!promptText.trim()) {
@@ -45,12 +45,12 @@ export default function Recipes() {
 
     const words = promptText
       .toLowerCase()
-      .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, ' ')
+      .replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, ' ')
       .split(/\s+/);
 
     const cleanKeywords = words
       .map(w => w.trim())
-      .filter(w => w.length >= 3 && !stopWords.has(w));
+      .filter(w => w.length >= 3 && !STOP_WORDS.has(w));
 
     const uniqueKeywords = [...new Set(cleanKeywords)];
     setParsedIngredients(uniqueKeywords);
@@ -106,7 +106,7 @@ export default function Recipes() {
   };
 
   // Category tags
-  const categoriesList = ['All', 'Breakfast', 'Lunch', 'Cozy Dinner', 'Dessert'];
+  const categoriesList = ['All', ...new Set(recipes.map(recipe => recipe.cuisine).filter(Boolean))];
 
   // Base list to show in grid (filters by saved booklet vs prompt index)
   const getBaseRecipes = () => {
@@ -120,10 +120,11 @@ export default function Recipes() {
   };
 
   const filteredRecipes = getBaseRecipes().filter(recipe => {
-    const matchesCategory = selectedCategory === 'All' || recipe.cuisine.toLowerCase() === selectedCategory.toLowerCase() || (selectedCategory === 'Lunch' && recipe.cuisine.includes('Lunch'));
-    const matchesSearch = recipe.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          recipe.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          recipe.ingredients.some(ing => ing.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesCategory = selectedCategory === 'All' || recipe.cuisine?.toLowerCase() === selectedCategory.toLowerCase();
+    const query = searchQuery.toLowerCase();
+    const matchesSearch = recipe.title?.toLowerCase().includes(query) ||
+                          recipe.description?.toLowerCase().includes(query) ||
+                          (recipe.ingredients || []).some(ing => String(ing).toLowerCase().includes(query));
     return matchesCategory && matchesSearch;
   });
 
@@ -360,8 +361,8 @@ export default function Recipes() {
 
                     {/* Recipe Image */}
                     <div className="overflow-hidden h-44 sm:h-52 relative" onClick={() => handleCardClick(recipe.id)}>
-                      <img 
-                        src={recipe.image} 
+                      <RecipeImage
+                        recipe={recipe}
                         alt={recipe.title}
                         className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
                       />

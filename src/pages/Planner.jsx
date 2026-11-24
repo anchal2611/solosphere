@@ -1,13 +1,11 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { AppContext } from '../context/AppContext';
 import { 
   CheckSquare, 
   Square, 
   Plus, 
   Trash2, 
-  Sparkles, 
   Edit3, 
-  Bell,
   Heart,
   Save,
   X
@@ -34,6 +32,20 @@ export default function Planner() {
   const [newGoalText, setNewGoalText] = useState('');
   const [newHabitName, setNewHabitName] = useState('');
 
+  useEffect(() => {
+    setNoteContent(planner.notes || '');
+  }, [planner.notes]);
+
+  useEffect(() => {
+    if (noteContent === planner.notes) return undefined;
+    setSaveStatus('Saving...');
+    const timeout = setTimeout(() => {
+      updateNotes(noteContent);
+      setSaveStatus('Saved');
+    }, 500);
+    return () => clearTimeout(timeout);
+  }, [noteContent, planner.notes, updateNotes]);
+
   const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   const handleAddGoalSubmit = (e) => {
@@ -55,19 +67,6 @@ export default function Planner() {
     if (!newTaskText) return;
     addTask(newTaskText);
     setNewTaskText('');
-  };
-
-  const handleNoteChange = (e) => {
-    const val = e.target.value;
-    setNoteContent(val);
-    setSaveStatus('Saving...');
-    
-    // Simulate auto-save delay
-    const timeout = setTimeout(() => {
-      updateNotes(val);
-      setSaveStatus('Saved');
-    }, 800);
-    return () => clearTimeout(timeout);
   };
 
   return (
@@ -236,7 +235,7 @@ export default function Planner() {
 
             <textarea
               value={noteContent}
-              onChange={handleNoteChange}
+              onChange={(e) => setNoteContent(e.target.value)}
               className="w-full flex-1 bg-transparent border-0 font-sans text-xs text-brand-text-dark resize-none focus:outline-none focus:ring-0 leading-relaxed italic placeholder-brand-text-muted/50 mt-1 min-h-[120px]"
               placeholder="Jot down notes, comforting quotes, or sudden recipe inspirations..."
             />

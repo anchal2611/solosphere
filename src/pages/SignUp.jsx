@@ -19,7 +19,6 @@ import {
   Eye, 
   EyeOff, 
   Compass, 
-  Heart,
   Calendar
 } from 'lucide-react';
 
@@ -213,7 +212,7 @@ export default function SignUp() {
                 </span>
                 <input 
                   type="text"
-                  placeholder="Anshika"
+                  placeholder="Your name"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   onBlur={() => handleBlur('fullName')}
@@ -399,7 +398,7 @@ export default function SignUp() {
             </button>
           </div>
           <p className="text-[9px] uppercase tracking-widest text-brand-text-muted/40 font-semibold font-sans">
-            Made with care by Anshika & Anchal
+            A personal space for everyday life
           </p>
         </div>
 

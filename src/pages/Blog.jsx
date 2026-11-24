@@ -11,6 +11,22 @@ export default function Blog() {
 
   const isPostLiked = (postId) => (profile.likedBlogs || []).map(String).includes(String(postId));
 
+  if (blogPosts.length === 0) {
+    return (
+      <div className="space-y-6 animate-slide-up max-w-3xl mx-auto">
+        <header className="border-b border-brand-text-muted/10 pb-6 space-y-1">
+          <h1 className="text-4xl font-bold tracking-tight text-brand-text-dark">Solo Journal</h1>
+          <p className="font-sans text-brand-text-muted text-sm">Articles from your journal will appear here.</p>
+        </header>
+        <div className="min-h-64 flex flex-col items-center justify-center text-center gap-3 bg-white border border-dashed border-brand-bg-beige rounded-brand p-8">
+          <MessageSquare size={28} className="text-brand-text-muted opacity-50" />
+          <h2 className="font-serif text-lg font-bold text-brand-text-dark">No articles available</h2>
+          <p className="text-xs text-brand-text-muted">There are no journal articles to display yet.</p>
+        </div>
+      </div>
+    );
+  }
+
   const handlePostClick = (post) => {
     setSelectedPost(post);
   };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppContext } from '../context/AppContext';
+import RecipeImage from '../components/RecipeImage';
 import { 
   ArrowLeft, 
   Bookmark, 
@@ -24,7 +25,6 @@ export default function RecipeDetail() {
 
   // States
   const [checkedIngredients, setCheckedIngredients] = useState({});
-  const [isGenerating, setIsGenerating] = useState(false);
   const [generatedSuggestion, setGeneratedSuggestion] = useState(null);
 
   useEffect(() => {
@@ -69,38 +69,29 @@ export default function RecipeDetail() {
     }));
   };
 
-  // Simulate print command
+  // Open the browser print dialog for this recipe.
   const handlePrint = () => {
     window.print();
   };
 
-  // Simulate "Generate Similar Recipe"
+  // Find a related recipe already available in the catalog.
   const handleGenerateSimilar = () => {
-    setIsGenerating(true);
-    setGeneratedSuggestion(null);
+    const candidates = recipes.filter(item => String(item.id) !== String(recipe.id));
+    const related = candidates.filter(item => item.cuisine && item.cuisine === recipe.cuisine);
+    const pool = related.length > 0 ? related : candidates;
 
-    setTimeout(() => {
-      setIsGenerating(false);
-      
-      const suggestions = [
-        { title: 'Spiced Baked Apple with Oat Crumble', type: 'Dessert' },
-        { title: 'Honey Glazed Roasted Acorn Squash', type: 'Dinner' },
-        { title: 'Velvety Mushroom & Wild Rice Soup', type: 'Lunch' },
-        { title: 'Cardamom Cinnamon Stewed Plums', type: 'Breakfast' }
-      ];
-      
-      // Select random item
-      const randomItem = suggestions[Math.floor(Math.random() * suggestions.length)];
-      setGeneratedSuggestion(randomItem);
+    if (pool.length === 0) {
+      setGeneratedSuggestion(null);
+      return;
+    }
 
-      // Notification
-      addNotification({
-        type: 'info',
-        text: `Generated similar recipe proposal: ${randomItem.title}`,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        group: 'Today'
-      });
-    }, 1200);
+    const suggestion = pool[Math.floor(Math.random() * pool.length)];
+    setGeneratedSuggestion({ id: suggestion.id, title: suggestion.title, type: suggestion.cuisine || suggestion.meal_type || suggestion.course || 'Recipe' });
+    addNotification({
+      type: 'info',
+      text: `Found a related recipe: ${suggestion.title}`,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    });
   };
 
   if (loading) {
@@ -167,7 +158,7 @@ export default function RecipeDetail() {
       {/* Hero Header Layout */}
       <div className="space-y-4">
         <span className="text-xxs uppercase tracking-widest text-brand-terracotta font-sans font-semibold">
-          {recipe.cuisine} • portioned for one
+          {recipe.cuisine}
         </span>
         <h2 className="text-3xl md:text-5xl font-bold text-brand-text-dark leading-tight">
           {recipe.title}
@@ -195,9 +186,9 @@ export default function RecipeDetail() {
 
       {/* Hero Image */}
       <div className="h-64 md:h-[420px] rounded-brand-lg overflow-hidden shadow-sm">
-        <img 
-          src={recipe.image} 
-          alt={recipe.title} 
+        <RecipeImage
+          recipe={recipe}
+          alt={recipe.title}
           className="w-full h-full object-cover"
         />
       </div>
@@ -268,7 +259,7 @@ export default function RecipeDetail() {
 
         </div>
 
-        {/* Sidebar: Nutrition Info & AI Actions */}
+        {/* Sidebar: Nutrition Info & Related Recipes */}
         <div className="space-y-6">
           
           {/* Nutrition Stats */}
@@ -298,7 +289,7 @@ export default function RecipeDetail() {
             </div>
             
             <p className="font-sans text-xxs text-brand-text-muted text-center italic mt-2">
-              Estimates computed per single portion.
+              Nutrition values are estimates.
             </p>
           </div>
 
@@ -324,20 +315,20 @@ export default function RecipeDetail() {
                   Category: {generatedSuggestion.type}
                 </span>
                 <button
-                  onClick={() => setGeneratedSuggestion(null)}
+                  onClick={() => navigate(`/recipes/${generatedSuggestion.id}`)}
                   className="block text-xxs font-sans text-brand-terracotta hover:underline font-semibold mt-1"
                 >
-                  Clear suggestion
+                  View recipe
                 </button>
               </div>
             ) : (
               <button
                 onClick={handleGenerateSimilar}
-                disabled={isGenerating}
+                disabled={isGenerating || recipes.length < 2}
                 className="w-full bg-brand-bg-beige text-brand-text-dark border border-brand-text-muted/10 hover:border-brand-terracotta/30 py-2.5 rounded-brand font-semibold hover:bg-brand-bg-warm transition-all duration-300 font-sans text-xs flex items-center justify-center gap-1.5"
               >
-                <Sparkles size={13} className={isGenerating ? 'animate-spin text-brand-terracotta' : 'text-brand-terracotta'} />
-                {isGenerating ? 'Curating ingredients...' : 'Generate Similar Recipe'}
+                <Sparkles size={13} className="text-brand-terracotta" />
+                Find Similar Recipe
               </button>
             )}
           </div>

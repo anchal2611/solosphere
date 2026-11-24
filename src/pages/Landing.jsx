@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AppContext } from '../context/AppContext';
+import RecipeImage from '../components/RecipeImage';
 import { 
   Calendar, 
   BookOpen, 
@@ -16,6 +18,8 @@ import {
 
 export default function Landing() {
   const navigate = useNavigate();
+  const { recipes } = useContext(AppContext);
+  const featuredRecipe = recipes[0];
 
   const features = [
     {
@@ -32,13 +36,13 @@ export default function Landing() {
     },
     {
       title: 'Solo Kitchen',
-      desc: 'Explore and curate culinary ideas sized specifically for single servings. Type whatever you have in your pantry and generate similar recipe ideas with a single tap.',
+      desc: 'Browse recipes, search by ingredient, and find related dishes from the recipe catalog.',
       icon: BookOpen,
       color: 'text-brand-gold bg-brand-gold/5'
     },
     {
-      title: 'Journal Reflections',
-      desc: 'Browse essays, reflections, and lifestyle guides written to help you thrive in your solo space. Cultivate a slower, more intentional daily life.',
+      title: 'Personal Journal',
+      desc: 'Keep your planner notes, weekly priorities, goals, and habit check-ins together.',
       icon: FileText,
       color: 'text-brand-dusty bg-brand-dusty/5'
     }
@@ -118,18 +122,14 @@ export default function Landing() {
                   <span className="font-serif italic text-xs text-brand-olive font-medium">Nourishment</span>
                   <BookOpen size={16} className="text-brand-olive" />
                 </div>
-                <h4 className="font-serif text-base font-bold text-brand-text-dark line-clamp-1">Warm Fig & Honey Oatmeal</h4>
+                <h4 className="font-serif text-base font-bold text-brand-text-dark line-clamp-1">{featuredRecipe?.title || 'Explore the recipe catalog'}</h4>
                 <div className="w-full h-24 bg-brand-bg-warm rounded-brand overflow-hidden">
-                  <img 
-                    src="https://images.unsplash.com/photo-1517881917430-e70dfb3610aa?auto=format&fit=crop&q=80&w=400" 
-                    alt="Oatmeal preview" 
-                    className="w-full h-full object-cover grayscale-[20%]"
-                  />
+                  {featuredRecipe && <RecipeImage recipe={featuredRecipe} alt={featuredRecipe.title} className="w-full h-full object-cover grayscale-[20%]" />}
                 </div>
               </div>
               <div className="flex justify-between text-xxs font-sans text-brand-text-muted pt-4 border-t border-brand-bg-warm">
-                <span className="flex items-center gap-1"><Clock size={11} /> 15m</span>
-                <span className="flex items-center gap-1"><Flame size={11} /> 320 kcal</span>
+                <span className="flex items-center gap-1"><Clock size={11} /> {featuredRecipe?.time || 'Browse'}</span>
+                <span className="flex items-center gap-1"><Flame size={11} /> {featuredRecipe?.calories || 'Recipes'}</span>
               </div>
             </div>
 
@@ -143,14 +143,14 @@ export default function Landing() {
                   <Coffee size={18} className="text-brand-gold" />
                 </div>
                 <p className="font-serif text-lg md:text-xl italic text-brand-text-dark leading-relaxed">
-                  "Thriving alone is the gentle art of celebrating your own rhythms, cooking foods you love, and nourishing your physical space."
+                  "Keep your recipes, plans, habits, and spending in one place."
                 </p>
               </div>
 
               <div className="pt-6 border-t border-brand-text-dark/5 flex items-center justify-between font-sans text-[10px] text-brand-text-muted mt-8">
                 <span className="flex items-center gap-1">
                   <Sun size={12} className="text-brand-gold animate-spin" style={{ animationDuration: '25s' }} />
-                  Morning check-in completed
+                  Your space, at your pace
                 </span>
                 <span className="font-semibold text-brand-terracotta">SoloSphere</span>
               </div>
@@ -198,9 +198,9 @@ export default function Landing() {
       <footer className="px-6 md:px-12 py-8 bg-transparent border-t border-brand-text-muted/10">
         <div className="max-w-7xl w-full mx-auto flex flex-col sm:flex-row justify-between items-center gap-4 text-[10px] font-sans text-brand-text-muted font-medium">
           <div className="space-y-1 text-center sm:text-left">
-            <p>© 2026 SoloSphere. All rights reserved. Cultivating slow spaces.</p>
+            <p>© {new Date().getFullYear()} SoloSphere. All rights reserved.</p>
             <p className="text-[9px] uppercase tracking-widest text-brand-text-muted/40 font-semibold">
-              Made with care by Anshika & Anchal
+              A personal space for everyday life
             </p>
           </div>
           

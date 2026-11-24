@@ -3,10 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { AppContext } from '../context/AppContext';
 import { 
   User, 
-  Heart, 
-  DollarSign, 
-  BookOpen, 
-  Calendar, 
   Save, 
   CheckCircle2, 
   Coffee,
@@ -21,7 +17,7 @@ import {
 
 export default function Profile() {
   const navigate = useNavigate();
-  const { profile, setProfile, recipes, expenses, categories } = useContext(AppContext);
+  const { profile, setProfile, recipes, expenses, categories, planner } = useContext(AppContext);
   
   // Local edit states
   const [userName, setUserName] = useState(profile.name);
@@ -44,6 +40,8 @@ export default function Profile() {
   // 1. Math calculations
   const totalSpent = expenses.reduce((acc, curr) => acc + curr.amount, 0);
   const savedRecipesList = recipes.filter(r => profile.savedRecipes.map(String).includes(String(r.id)));
+  const todayKey = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', weekday: 'short' }).format(new Date());
+  const completedHabitsToday = planner.habits.filter(habit => habit.history?.[todayKey]).length;
 
   // Auto-save helper functions for companion settings
   const handleCoffeeLimitChange = (val) => {
@@ -228,7 +226,7 @@ export default function Profile() {
             <div className="flex items-center gap-2">
               <CheckCircle2 size={16} className="text-brand-olive shrink-0" />
               <p className="font-sans text-xxs text-brand-text-muted">
-                You've completed your daily reflections and habits for <strong>{profile.streak} days</strong> in a row!
+                {completedHabitsToday} of {planner.habits.length} habits completed today.
               </p>
             </div>
           </div>
