@@ -6,6 +6,7 @@ import React, {
 } from "react";
 
 import { useAuth } from "./AuthContext";
+import { BLOG_POSTS } from "../data/blogPosts";
 
 import { db } from "../firebase/firebase";
 
@@ -96,9 +97,6 @@ const cleanNotifications = (notifications = []) => {
 // RECIPES
 // ============================================================
 
-const INITIAL_RECIPES = [];
-
-
 // ============================================================
 // APP PROVIDER
 // ============================================================
@@ -129,8 +127,8 @@ export const AppProvider = ({ children }) => {
 
   // ================= RECIPES =================
 
-  const [recipes, setRecipes] = useState(INITIAL_RECIPES);
-  const [blogPosts, setBlogPosts] = useState([]);
+  const [recipes, setRecipes] = useState([]);
+  const [blogPosts, setBlogPosts] = useState(BLOG_POSTS);
 
 
   // ================= PLANNER =================
@@ -157,7 +155,7 @@ export const AppProvider = ({ children }) => {
       setProfile(DEFAULT_PROFILE);
       setPlanner(DEFAULT_PLANNER);
       setNotifications(DEFAULT_NOTIFICATIONS);
-      setBlogPosts([]);
+      setBlogPosts(BLOG_POSTS);
       setExpenses([]);
       setCategories([]);
 
@@ -176,7 +174,7 @@ export const AppProvider = ({ children }) => {
 
       setPlanner(DEFAULT_PLANNER);
       setNotifications(DEFAULT_NOTIFICATIONS);
-      setBlogPosts([]);
+      setBlogPosts(BLOG_POSTS);
       setExpenses([]);
       setCategories([]);
     }
@@ -236,7 +234,7 @@ export const AppProvider = ({ children }) => {
           } else {
             setNotifications(DEFAULT_NOTIFICATIONS);
           }
-          setBlogPosts(Array.isArray(data.blogPosts) ? data.blogPosts : []);
+          setBlogPosts(Array.isArray(data.blogPosts) && data.blogPosts.length > 0 ? data.blogPosts : BLOG_POSTS);
         }
 
 
@@ -254,7 +252,7 @@ export const AppProvider = ({ children }) => {
           setProfile(newProfile);
           setPlanner(cleanPlannerData(DEFAULT_PLANNER));
           setNotifications(DEFAULT_NOTIFICATIONS);
-          setBlogPosts([]);
+          setBlogPosts(BLOG_POSTS);
 
           await setDoc(userDocRef, {
             profile: newProfile,

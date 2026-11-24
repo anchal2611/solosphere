@@ -324,7 +324,7 @@ export default function RecipeDetail() {
             ) : (
               <button
                 onClick={handleGenerateSimilar}
-                disabled={isGenerating || recipes.length < 2}
+                disabled={recipes.length < 2}
                 className="w-full bg-brand-bg-beige text-brand-text-dark border border-brand-text-muted/10 hover:border-brand-terracotta/30 py-2.5 rounded-brand font-semibold hover:bg-brand-bg-warm transition-all duration-300 font-sans text-xs flex items-center justify-center gap-1.5"
               >
                 <Sparkles size={13} className="text-brand-terracotta" />

@@ -8,9 +8,10 @@ const findMealImage = (title) => {
   const query = normalize(title);
   if (!query) return Promise.resolve(null);
   if (!mealImageRequests.has(query)) {
-    const request = fetch(`https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(query)}`)
-      .then(response => response.ok ? response.json() : null)
-      .then(data => {
+    const request = (async () => {
+      try {
+        const response = await fetch(`https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(query)}`);
+        const data = response.ok ? await response.json() : null;
         const meals = data?.meals || [];
         const titleWords = new Set(query.split(' ').filter(word => word.length > 2));
         const bestMatch = meals
@@ -20,16 +21,26 @@ const findMealImage = (title) => {
             return { meal, score: titleWords.size ? sharedWords / titleWords.size : 0 };
           })
           .sort((left, right) => right.score - left.score)[0];
-        return bestMatch?.score >= 0.5 ? bestMatch.meal.strMealThumb : null;
-      })
-      .catch(() => null);
+        if (bestMatch?.score >= 0.5 && bestMatch.meal.strMealThumb) return bestMatch.meal.strMealThumb;
+      } catch {
+        // Fall through to a random catalog image, then keep the source image.
+      }
+
+      try {
+        const response = await fetch('https://www.themealdb.com/api/json/v1/1/random.php');
+        const data = response.ok ? await response.json() : null;
+        return data?.meals?.[0]?.strMealThumb || null;
+      } catch {
+        return null;
+      }
+    })();
     mealImageRequests.set(query, request);
   }
   return mealImageRequests.get(query);
 };
 
 export default function RecipeImage({ recipe, className = '', ...imageProps }) {
-  const fallbackImage = `https://loremflickr.com/960/640/${encodeURIComponent(`${recipe.title || 'food'},food`)}?lock=${encodeURIComponent(recipe.id || recipe.title || 'recipe')}`;
+  const fallbackImage = recipe.image || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&q=80&w=800';
   const [image, setImage] = useState(fallbackImage);
 
   useEffect(() => {
