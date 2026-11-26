@@ -14,6 +14,35 @@ import {
   Info 
 } from 'lucide-react';
 
+const normalizeRecipeSteps = (rawSteps) => {
+  const steps = Array.isArray(rawSteps) ? rawSteps : [rawSteps];
+
+  return steps.flatMap((rawStep) => {
+    if (Array.isArray(rawStep)) {
+      return normalizeRecipeSteps(rawStep);
+    }
+
+    if (typeof rawStep !== 'string' || !rawStep.trim()) {
+      return [];
+    }
+
+    const step = rawStep.trim();
+
+    if (step.startsWith('[') && step.endsWith(']')) {
+      try {
+        const parsedSteps = JSON.parse(step);
+        if (Array.isArray(parsedSteps)) {
+          return normalizeRecipeSteps(parsedSteps);
+        }
+      } catch {
+        // Keep ordinary instruction text when it is not a JSON array.
+      }
+    }
+
+    return [step];
+  });
+};
+
 export default function RecipeDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -116,6 +145,8 @@ export default function RecipeDetail() {
       </div>
     );
   }
+
+  const recipeSteps = normalizeRecipeSteps(recipe.steps);
 
   return (
     <div className="space-y-8 animate-slide-up max-w-4xl mx-auto">
@@ -240,7 +271,7 @@ export default function RecipeDetail() {
             </h3>
             
             <ol className="space-y-6">
-              {recipe.steps.map((step, idx) => (
+              {recipeSteps.map((step, idx) => (
                 <li key={idx} className="flex gap-4 items-start">
                   {/* Step Number Badge */}
                   <span className="w-7 h-7 rounded-full bg-brand-bg-beige flex items-center justify-center font-serif font-semibold text-xs text-brand-text-dark shrink-0 mt-0.5 shadow-sm">
