@@ -43,6 +43,34 @@ const normalizeRecipeSteps = (rawSteps) => {
   });
 };
 
+const normalizeRecipeIngredients = (rawIngredients) => {
+  const ingredients = Array.isArray(rawIngredients)
+    ? rawIngredients.flat(Infinity)
+    : [rawIngredients];
+  const textIngredients = ingredients
+    .filter((ingredient) => ingredient !== null && ingredient !== undefined)
+    .map((ingredient) => String(ingredient).trim())
+    .filter(Boolean);
+  const combinedIngredients = textIngredients.join(',');
+
+  if (combinedIngredients.startsWith('[') && combinedIngredients.endsWith(']')) {
+    try {
+      const parsedIngredients = JSON.parse(combinedIngredients);
+      if (Array.isArray(parsedIngredients)) {
+        return parsedIngredients
+          .map((ingredient) => String(ingredient).trim())
+          .filter(Boolean);
+      }
+    } catch {
+      // Keep the available ingredient text when it is not a JSON array.
+    }
+  }
+
+  return textIngredients
+    .map((ingredient) => ingredient.replace(/^['"]|['"]$/g, '').trim())
+    .filter(Boolean);
+};
+
 export default function RecipeDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -146,6 +174,7 @@ export default function RecipeDetail() {
     );
   }
 
+  const recipeIngredients = normalizeRecipeIngredients(recipe.ingredients);
   const recipeSteps = normalizeRecipeSteps(recipe.steps);
 
   return (
@@ -238,7 +267,7 @@ export default function RecipeDetail() {
             </div>
             
             <ul className="space-y-2.5 font-sans text-xs">
-              {recipe.ingredients.map((ing, idx) => {
+              {recipeIngredients.map((ing, idx) => {
                 const checked = checkedIngredients[idx];
                 return (
                   <li 
